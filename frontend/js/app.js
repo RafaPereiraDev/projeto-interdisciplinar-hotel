@@ -110,7 +110,7 @@ function initRouting() {
   const btnGateLogin = document.getElementById('btn-gate-login');
   if (btnGateLogin) {
     btnGateLogin.addEventListener('click', () => {
-      openModal('modal-auth');
+      openAuthModal('login');
       // Preenche credenciais de funcionário para conveniência
       document.getElementById('login-email').value = 'recepcao@hotelvigilant.com';
       document.getElementById('login-senha').value = 'admin123';
@@ -203,96 +203,136 @@ function handleRoute(path) {
    AUTENTICAÇÃO & USUÁRIO (Requisito 3.1)
    ==================================================================== */
 function initAuth() {
-  const savedUser = sessionStorage.getItem('vigilant_user');
+  const savedUser = localStorage.getItem('vigilant_user') || sessionStorage.getItem('vigilant_user');
   if (savedUser) {
     try {
       state.currentUser = JSON.parse(savedUser);
-      renderUserSession();
     } catch (e) {
+      localStorage.removeItem('vigilant_user');
       sessionStorage.removeItem('vigilant_user');
+      state.currentUser = null;
     }
   }
+
+  // Renderiza imediatamente o cabeçalho no estado adequado
+  renderUserSession();
 
   const toggleLogin = document.getElementById('auth-toggle-login');
   const toggleCadastro = document.getElementById('auth-toggle-cadastro');
   const formLogin = document.getElementById('form-login');
   const formCadastro = document.getElementById('form-cadastro');
 
-  toggleLogin.addEventListener('click', () => {
-    formLogin.style.display = 'block';
-    formCadastro.style.display = 'none';
-    toggleLogin.className = 'btn btn-outline-primary';
-    toggleCadastro.className = 'btn btn-secondary';
-  });
+  if (toggleLogin) {
+    toggleLogin.addEventListener('click', () => openAuthModal('login'));
+  }
 
-  toggleCadastro.addEventListener('click', () => {
-    formLogin.style.display = 'none';
-    formCadastro.style.display = 'block';
-    toggleLogin.className = 'btn btn-secondary';
-    toggleCadastro.className = 'btn btn-outline-primary';
+  if (toggleCadastro) {
+    toggleCadastro.addEventListener('click', () => openAuthModal('cadastro'));
+  }
+
+  // Delegated listener para cliques em botões de abertura do modal de autenticação
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('#btn-open-auth-modal') || e.target.closest('.btn-trigger-auth-modal')) {
+      e.preventDefault();
+      openAuthModal('login');
+    }
+    if (e.target.closest('.btn-ir-para-vitrine')) {
+      e.preventDefault();
+      switchGuestSubtab('tab-vitrine');
+    }
   });
 
   // Submit Login
-  formLogin.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = document.getElementById('login-email').value;
-    const senha = document.getElementById('login-senha').value;
+  if (formLogin) {
+    formLogin.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value;
+      const senha = document.getElementById('login-senha').value;
 
-    try {
-      const res = await api.login(email, senha);
-      state.currentUser = res.cliente;
-      sessionStorage.setItem('vigilant_user', JSON.stringify(res.cliente));
-      renderUserSession();
-      closeModal('modal-auth');
+      try {
+        const res = await api.login(email, senha);
+        state.currentUser = res.cliente;
+        localStorage.setItem('vigilant_user', JSON.stringify(res.cliente));
+        sessionStorage.setItem('vigilant_user', JSON.stringify(res.cliente));
+        renderUserSession();
+        closeModal('modal-auth');
 
-      // Redirecionamento inteligente baseado no perfil
-      const isFunc = (res.cliente.tipoPerfil === 'FUNCIONARIO') || 
-                     (res.cliente.codigoCliente && res.cliente.codigoCliente.startsWith('FUNC'));
+        // Redirecionamento inteligente baseado no perfil
+        const isFunc = (res.cliente.tipoPerfil === 'FUNCIONARIO') || 
+                       (res.cliente.codigoCliente && res.cliente.codigoCliente.startsWith('FUNC'));
 
-      if (isFunc) {
-        res.cliente.tipoPerfil = 'FUNCIONARIO';
-        navigateTo('/recepcao');
-        showToast(`Bem-vindo(a) à Recepção, ${res.cliente.nome}!`, 'success');
-      } else {
-        res.cliente.tipoPerfil = 'CLIENTE';
-        if (state.route === '/recepcao') {
-          navigateTo('/minhas-reservas');
+        if (isFunc) {
+          res.cliente.tipoPerfil = 'FUNCIONARIO';
+          navigateTo('/recepcao');
+          showToast(`Bem-vindo(a) à Recepção, ${res.cliente.nome}!`, 'success');
         } else {
-          handleRoute(state.route);
+          res.cliente.tipoPerfil = 'CLIENTE';
+          if (state.route === '/recepcao') {
+            navigateTo('/minhas-reservas');
+          } else {
+            handleRoute(state.route);
+            carregarReservas();
+          }
+          showToast(`Bem-vindo(a), ${res.cliente.nome}!`, 'success');
         }
-        showToast(`Bem-vindo(a), ${res.cliente.nome}!`, 'success');
-      }
 
-      preencherCodigoClienteCampos();
-    } catch (err) {
-      alert(`Falha no login: ${err.message}`);
-    }
-  });
+        preencherCodigoClienteCampos();
+      } catch (err) {
+        alert(`Falha no login: ${err.message}`);
+      }
+    });
+  }
 
   // Submit Cadastro (Requisito 3.1)
-  formCadastro.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const clienteData = {
-      nome: document.getElementById('cad-nome').value,
-      email: document.getElementById('cad-email').value,
-      senha: document.getElementById('cad-senha').value,
-      telefone: document.getElementById('cad-telefone').value,
-      cpf: document.getElementById('cad-cpf').value
-    };
+  if (formCadastro) {
+    formCadastro.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const clienteData = {
+        nome: document.getElementById('cad-nome').value,
+        email: document.getElementById('cad-email').value,
+        senha: document.getElementById('cad-senha').value,
+        telefone: document.getElementById('cad-telefone').value,
+        cpf: document.getElementById('cad-cpf').value
+      };
 
-    try {
-      const res = await api.cadastrar(clienteData);
-      state.currentUser = res.cliente;
-      sessionStorage.setItem('vigilant_user', JSON.stringify(res.cliente));
-      renderUserSession();
-      closeModal('modal-auth');
-      navigateTo('/');
-      showToast(`Cadastro realizado! Seu código de cliente é: ${res.cliente.codigoCliente}`, 'success');
-      preencherCodigoClienteCampos();
-    } catch (err) {
-      alert(`Erro no cadastro: ${err.message}`);
-    }
-  });
+      try {
+        const res = await api.cadastrar(clienteData);
+        state.currentUser = res.cliente;
+        res.cliente.tipoPerfil = 'CLIENTE';
+        localStorage.setItem('vigilant_user', JSON.stringify(res.cliente));
+        sessionStorage.setItem('vigilant_user', JSON.stringify(res.cliente));
+        renderUserSession();
+        closeModal('modal-auth');
+        navigateTo('/');
+        carregarReservas();
+        showToast(`Cadastro realizado com sucesso! Seu código é: ${res.cliente.codigoCliente}`, 'success');
+        preencherCodigoClienteCampos();
+      } catch (err) {
+        alert(`Erro no cadastro: ${err.message}`);
+      }
+    });
+  }
+}
+
+function openAuthModal(tab = 'login') {
+  const toggleLogin = document.getElementById('auth-toggle-login');
+  const toggleCadastro = document.getElementById('auth-toggle-cadastro');
+  const formLogin = document.getElementById('form-login');
+  const formCadastro = document.getElementById('form-cadastro');
+
+  if (tab === 'cadastro') {
+    if (formLogin) formLogin.style.display = 'none';
+    if (formCadastro) formCadastro.style.display = 'block';
+    if (toggleLogin) toggleLogin.className = 'btn btn-secondary';
+    if (toggleCadastro) toggleCadastro.className = 'btn btn-primary';
+  } else {
+    if (formLogin) formLogin.style.display = 'block';
+    if (formCadastro) formCadastro.style.display = 'none';
+    if (toggleLogin) toggleLogin.className = 'btn btn-primary';
+    if (toggleCadastro) toggleCadastro.className = 'btn btn-secondary';
+  }
+
+  openModal('modal-auth');
 }
 
 function initDemoButtons() {
@@ -301,6 +341,7 @@ function initDemoButtons() {
 
   if (btnDemoCliente) {
     btnDemoCliente.addEventListener('click', () => {
+      openAuthModal('login');
       document.getElementById('login-email').value = 'cliente@hotelvigilant.com';
       document.getElementById('login-senha').value = '123456';
     });
@@ -308,6 +349,7 @@ function initDemoButtons() {
 
   if (btnDemoFuncionario) {
     btnDemoFuncionario.addEventListener('click', () => {
+      openAuthModal('login');
       document.getElementById('login-email').value = 'recepcao@hotelvigilant.com';
       document.getElementById('login-senha').value = 'admin123';
     });
@@ -316,43 +358,52 @@ function initDemoButtons() {
 
 function renderUserSession() {
   const container = document.getElementById('user-session-container');
+  if (!container) return;
+
   if (state.currentUser) {
     const isFunc = (state.currentUser.tipoPerfil === 'FUNCIONARIO') || 
                    (state.currentUser.codigoCliente && state.currentUser.codigoCliente.startsWith('FUNC'));
     container.innerHTML = `
       <div style="display: flex; align-items: center; gap: 0.75rem;">
-        <div style="text-align: right; line-height: 1.2;">
+        <div style="text-align: right; line-height: 1.25;">
           <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 0.35rem; justify-content: flex-end;">
-            <span>${state.currentUser.nome}</span>
-            <span class="badge" style="font-size: 0.65rem; padding: 0.1rem 0.35rem; background: ${isFunc ? '#fef3c7' : '#dbeafe'}; color: ${isFunc ? '#b45309' : '#1d4ed8'}; border: 1px solid ${isFunc ? '#fcd34d' : '#bfdbfe'};">
-              ${isFunc ? 'Recepção' : 'Hóspede'}
-            </span>
+            <span>Olá, <strong>${state.currentUser.nome.split(' ')[0]}</strong></span>
+            <span class="badge badge-code" style="font-size: 0.7rem; padding: 0.1rem 0.4rem;">[${state.currentUser.codigoCliente}]</span>
+            ${isFunc ? '<span class="badge" style="font-size: 0.65rem; padding: 0.1rem 0.35rem; background: #fef3c7; color: #b45309; border: 1px solid #fcd34d;">Recepção</span>' : ''}
           </div>
-          <div style="font-size: 0.74rem; color: var(--primary); font-family: var(--font-mono); font-weight: 600;">Cód: ${state.currentUser.codigoCliente}</div>
         </div>
-        <button id="btn-logout" class="btn btn-secondary btn-sm">Sair</button>
+        <button id="btn-logout" class="btn btn-secondary btn-sm" title="Encerrar sessão atual">Sair</button>
       </div>
     `;
-    document.getElementById('btn-logout').addEventListener('click', () => {
-      state.currentUser = null;
-      sessionStorage.removeItem('vigilant_user');
-      renderUserSession();
-      if (state.route === '/recepcao') {
-        handleRoute('/recepcao');
-      } else {
-        renderReservasTable();
-      }
-      showToast('Sessão finalizada com sucesso.', 'info');
-    });
+
+    const btnLogout = document.getElementById('btn-logout');
+    if (btnLogout) {
+      btnLogout.addEventListener('click', () => {
+        state.currentUser = null;
+        localStorage.removeItem('vigilant_user');
+        sessionStorage.removeItem('vigilant_user');
+        renderUserSession();
+        if (state.route === '/recepcao') {
+          handleRoute('/recepcao');
+        } else {
+          carregarReservas();
+        }
+        showToast('Sessão finalizada com sucesso.', 'info');
+      });
+    }
   } else {
     container.innerHTML = `
-      <button id="btn-open-auth-modal" class="btn btn-primary btn-sm">
+      <button id="btn-open-auth-modal" class="btn btn-primary btn-sm" title="Fazer login ou cadastrar nova conta">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         <span>Entrar / Cadastrar</span>
         <span class="pill-req">Req 3.1</span>
       </button>
     `;
-    document.getElementById('btn-open-auth-modal').addEventListener('click', () => openModal('modal-auth'));
+
+    const btnOpen = document.getElementById('btn-open-auth-modal');
+    if (btnOpen) {
+      btnOpen.addEventListener('click', () => openAuthModal('login'));
+    }
   }
 }
 
@@ -695,102 +746,131 @@ function abrirModalReservaComQuarto(codigoQuarto) {
 }
 
 async function carregarReservas() {
+  const unauthCard = document.getElementById('reservas-unauth-card');
+  const emptyCard = document.getElementById('reservas-empty-card');
+  const authContent = document.getElementById('reservas-auth-content');
   const tbodyGuest = document.getElementById('table-reservas-body');
   const tbodyStaff = document.getElementById('table-reservas-staff-body');
+
+  // 1. Visão da Recepção (Gestão de todas as reservas do hotel)
+  if (state.route === '/recepcao') {
+    try {
+      const todasReservas = await api.listarReservas();
+      state.reservas = todasReservas;
+      renderReservasStaffTable(todasReservas);
+    } catch (err) {
+      if (tbodyStaff) {
+        tbodyStaff.innerHTML = `<tr><td colspan="9" style="color: var(--danger); text-align: center;">Erro ao carregar reservas: ${err.message}</td></tr>`;
+      }
+    }
+    return;
+  }
+
+  // 2. Visão do Hóspede (Minhas Reservas)
+  // Se o usuário NÃO estiver logado:
+  if (!state.currentUser) {
+    if (unauthCard) unauthCard.style.display = 'block';
+    if (emptyCard) emptyCard.style.display = 'none';
+    if (authContent) authContent.style.display = 'none';
+    if (tbodyGuest) tbodyGuest.innerHTML = '';
+    atualizarIndicadores();
+    return;
+  }
+
+  // Se o usuário ESTIVER logado:
+  if (unauthCard) unauthCard.style.display = 'none';
 
   try {
-    const reservas = await api.listarReservas();
-    state.reservas = reservas;
-    renderReservasTable();
+    // Consulta à API filtrando estritamente pelo código do cliente autenticado
+    const minhasReservas = await api.listarReservas(state.currentUser.codigoCliente);
+    // Filtragem de garantia estrita no client-side
+    const reservasCliente = (minhasReservas || []).filter(
+      r => r.codigo_cliente === state.currentUser.codigoCliente
+    );
+
+    if (reservasCliente.length === 0) {
+      if (emptyCard) emptyCard.style.display = 'block';
+      if (authContent) authContent.style.display = 'none';
+    } else {
+      if (emptyCard) emptyCard.style.display = 'none';
+      if (authContent) authContent.style.display = 'block';
+      renderReservasGuestTable(reservasCliente);
+    }
   } catch (err) {
-    const errMsg = `<tr><td colspan="9" style="color: var(--danger); text-align: center;">Falha ao carregar reservas: ${err.message}</td></tr>`;
-    if (tbodyGuest) tbodyGuest.innerHTML = errMsg;
-    if (tbodyStaff) tbodyStaff.innerHTML = errMsg;
-  }
-}
-
-function renderReservasTable() {
-  const tbodyGuest = document.getElementById('table-reservas-body');
-  const tbodyStaff = document.getElementById('table-reservas-staff-body');
-
-  if (!state.reservas) return;
-
-  // 1. Tabela do Hóspede (Minhas Reservas)
-  if (tbodyGuest) {
-    let reservasGuest = state.reservas;
-    if (state.currentUser && state.currentUser.codigoCliente) {
-      const minhas = state.reservas.filter(r => r.codigo_cliente === state.currentUser.codigoCliente);
-      reservasGuest = minhas;
-    }
-
-    if (reservasGuest.length === 0) {
-      const msg = state.currentUser
-        ? 'Você ainda não possui reservas registradas. Escolha uma acomodação na vitrine e faça sua reserva!'
-        : 'Faça login para acompanhar suas reservas cadastradas ou busque por código acima.';
-      tbodyGuest.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">${msg}</td></tr>`;
-    } else {
-      tbodyGuest.innerHTML = reservasGuest.map(r => `
-        <tr>
-          <td><span class="badge badge-code">${r.codigo_reserva}</span></td>
-          <td><span class="badge badge-code">${r.codigo_cliente}</span></td>
-          <td><strong>${r.cliente_nome}</strong></td>
-          <td>${r.quarto_nome} (Nº ${r.quarto_numero})</td>
-          <td>${r.data_prevista_entrada}</td>
-          <td>${r.data_prevista_saida}</td>
-          <td>${r.num_hospedes}</td>
-          <td><span class="badge badge-${r.status === 'CONFIRMADA' ? 'confirmada' : 'disponivel'}">${r.status}</span></td>
-          <td style="text-align: right;">
-            <span class="badge badge-confirmada" style="font-size: 0.72rem;">Agendada</span>
-          </td>
-        </tr>
-      `).join('');
-    }
-  }
-
-  // 2. Tabela da Recepção (Todas as Reservas Operacionais)
-  if (tbodyStaff) {
-    if (state.reservas.length === 0) {
-      tbodyStaff.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-muted);">Nenhuma reserva encontrada no sistema.</td></tr>';
-    } else {
-      tbodyStaff.innerHTML = state.reservas.map(r => `
-        <tr>
-          <td><span class="badge badge-code">${r.codigo_reserva}</span></td>
-          <td><span class="badge badge-code">${r.codigo_cliente}</span></td>
-          <td><strong>${r.cliente_nome}</strong></td>
-          <td>${r.quarto_nome} (Nº ${r.quarto_numero})</td>
-          <td>${r.data_prevista_entrada}</td>
-          <td>${r.data_prevista_saida}</td>
-          <td>${r.num_hospedes}</td>
-          <td><span class="badge badge-${r.status === 'CONFIRMADA' ? 'confirmada' : 'disponivel'}">${r.status}</span></td>
-          <td style="text-align: right;">
-            ${r.status === 'CONFIRMADA' ? `
-              <button class="btn btn-outline-primary btn-sm btn-staff-checkin-reserva" 
-                      data-reserva="${r.codigo_reserva}" 
-                      data-cliente="${r.codigo_cliente}" 
-                      data-quarto="${r.codigo_quarto}"
-                      data-saida="${r.data_prevista_saida}"
-                      data-hospedes="${r.num_hospedes}">
-                Check-in no Balcão
-              </button>
-            ` : '<span style="color: var(--text-muted); font-size: 0.8rem;">Efetivada</span>'}
-          </td>
-        </tr>
-      `).join('');
-
-      tbodyStaff.querySelectorAll('.btn-staff-checkin-reserva').forEach(btn => {
-        btn.addEventListener('click', () => {
-          switchStaffSubtab('tab-staff-checkin');
-          document.getElementById('checkin-codigo-cliente').value = btn.getAttribute('data-cliente');
-          document.getElementById('checkin-codigo-item').value = btn.getAttribute('data-quarto');
-          document.getElementById('checkin-codigo-reserva').value = btn.getAttribute('data-reserva');
-          document.getElementById('checkin-previsao-saida').value = btn.getAttribute('data-saida');
-          document.getElementById('checkin-num-hospedes').value = btn.getAttribute('data-hospedes');
-        });
-      });
+    if (authContent) authContent.style.display = 'block';
+    if (tbodyGuest) {
+      tbodyGuest.innerHTML = `<tr><td colspan="9" style="color: var(--danger); text-align: center;">Falha ao carregar suas reservas: ${err.message}</td></tr>`;
     }
   }
 
   atualizarIndicadores();
+}
+
+function renderReservasGuestTable(reservas) {
+  const tbodyGuest = document.getElementById('table-reservas-body');
+  if (!tbodyGuest) return;
+
+  tbodyGuest.innerHTML = reservas.map(r => `
+    <tr>
+      <td><span class="badge badge-code">${r.codigo_reserva}</span></td>
+      <td><span class="badge badge-code">${r.codigo_cliente}</span></td>
+      <td><strong>${r.cliente_nome}</strong></td>
+      <td>${r.quarto_nome} (Nº ${r.quarto_numero})</td>
+      <td>${r.data_prevista_entrada}</td>
+      <td>${r.data_prevista_saida}</td>
+      <td>${r.num_hospedes}</td>
+      <td><span class="badge badge-${r.status === 'CONFIRMADA' ? 'confirmada' : 'disponivel'}">${r.status}</span></td>
+      <td style="text-align: right;">
+        <span class="badge badge-confirmada" style="font-size: 0.72rem;">Agendada</span>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function renderReservasStaffTable(reservas) {
+  const tbodyStaff = document.getElementById('table-reservas-staff-body');
+  if (!tbodyStaff) return;
+
+  if (reservas.length === 0) {
+    tbodyStaff.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-muted);">Nenhuma reserva encontrada no sistema.</td></tr>';
+    return;
+  }
+
+  tbodyStaff.innerHTML = reservas.map(r => `
+    <tr>
+      <td><span class="badge badge-code">${r.codigo_reserva}</span></td>
+      <td><span class="badge badge-code">${r.codigo_cliente}</span></td>
+      <td><strong>${r.cliente_nome}</strong></td>
+      <td>${r.quarto_nome} (Nº ${r.quarto_numero})</td>
+      <td>${r.data_prevista_entrada}</td>
+      <td>${r.data_prevista_saida}</td>
+      <td>${r.num_hospedes}</td>
+      <td><span class="badge badge-${r.status === 'CONFIRMADA' ? 'confirmada' : 'disponivel'}">${r.status}</span></td>
+      <td style="text-align: right;">
+        ${r.status === 'CONFIRMADA' ? `
+          <button class="btn btn-outline-primary btn-sm btn-staff-checkin-reserva" 
+                  data-reserva="${r.codigo_reserva}" 
+                  data-cliente="${r.codigo_cliente}" 
+                  data-quarto="${r.codigo_quarto}"
+                  data-saida="${r.data_prevista_saida}"
+                  data-hospedes="${r.num_hospedes}">
+            Check-in no Balcão
+          </button>
+        ` : '<span style="color: var(--text-muted); font-size: 0.8rem;">Efetivada</span>'}
+      </td>
+    </tr>
+  `).join('');
+
+  tbodyStaff.querySelectorAll('.btn-staff-checkin-reserva').forEach(btn => {
+    btn.addEventListener('click', () => {
+      switchStaffSubtab('tab-staff-checkin');
+      document.getElementById('checkin-codigo-cliente').value = btn.getAttribute('data-cliente');
+      document.getElementById('checkin-codigo-item').value = btn.getAttribute('data-quarto');
+      document.getElementById('checkin-codigo-reserva').value = btn.getAttribute('data-reserva');
+      document.getElementById('checkin-previsao-saida').value = btn.getAttribute('data-saida');
+      document.getElementById('checkin-num-hospedes').value = btn.getAttribute('data-hospedes');
+    });
+  });
 }
 
 /* ====================================================================

@@ -836,6 +836,65 @@ main.main-content {
 }
 
 /* ==========================================================================
+   CARDS DE ESTADO CONDICIONAL (MINHAS RESERVAS)
+   ========================================================================== */
+.auth-required-card,
+.empty-reservas-card {
+  max-width: 520px;
+  margin: 3.5rem auto;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 2.75rem 2rem;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.auth-required-icon,
+.empty-reservas-card .empty-icon {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.25rem;
+}
+
+.auth-required-icon {
+  background: #eff6ff;
+  color: var(--primary);
+  border: 1px solid #bfdbfe;
+}
+
+.empty-reservas-card .empty-icon {
+  background: #f8fafc;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.auth-required-card h3,
+.empty-reservas-card h3 {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.3px;
+}
+
+.auth-required-card p,
+.empty-reservas-card p {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+.auth-tabs .btn {
+  transition: var(--transition);
+}
+
+/* ==========================================================================
    TABELAS DE DADOS (VISÃO ADMINISTRATIVA DA RECEPÇÃO)
    ========================================================================== */
 .table-responsive {
