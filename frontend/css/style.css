@@ -59,6 +59,8 @@ body {
   font-size: 14px;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ==========================================================================
@@ -82,6 +84,13 @@ header.app-header {
   align-items: center;
   flex-wrap: wrap;
   gap: 1rem;
+}
+
+.brand-link {
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  align-items: center;
 }
 
 .brand-left {
@@ -108,29 +117,12 @@ header.app-header {
   flex-direction: column;
 }
 
-.brand-heading {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-}
-
 .brand-name {
   font-size: 1.25rem;
   font-weight: 800;
   color: #0f172a;
   letter-spacing: -0.4px;
   line-height: 1.2;
-}
-
-.badge-tag {
-  background-color: #eff6ff;
-  color: #1d4ed8;
-  border: 1px solid #bfdbfe;
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 0.15rem 0.55rem;
-  border-radius: 20px;
-  letter-spacing: 0.2px;
 }
 
 .brand-sub {
@@ -145,47 +137,20 @@ header.app-header {
   gap: 0.75rem;
 }
 
-/* Seletor de Modo (Área do Cliente vs Área do Funcionário) */
-.mode-selector {
-  display: inline-flex;
-  background-color: #f1f5f9;
-  border: 1px solid var(--border);
-  padding: 3px;
-  border-radius: 8px;
-  gap: 2px;
-}
-
-.btn-mode {
-  background: transparent;
-  border: none;
-  padding: 0.38rem 0.75rem;
-  font-family: inherit;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  cursor: pointer;
-  border-radius: 6px;
+/* Status do SQLite Online (Polido e Suave) */
+.system-status {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  transition: var(--transition);
-  white-space: nowrap;
-}
-
-.btn-mode:hover {
-  color: var(--text-main);
-}
-
-.btn-mode.active {
-  background-color: #ffffff;
-  color: var(--primary);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-}
-
-.btn-mode.active.mode-staff {
-  color: #b45309;
-  background-color: #fffbeb;
-  border: 1px solid #fde68a;
+  gap: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  background-color: rgba(236, 253, 245, 0.9);
+  border: 1px solid #a7f3d0;
+  border-radius: 9999px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #065f46;
+  box-shadow: 0 1px 2px rgba(5, 150, 105, 0.05);
+  letter-spacing: 0.2px;
 }
 
 .status-dot {
@@ -193,7 +158,57 @@ header.app-header {
   height: 8px;
   background-color: #10b981;
   border-radius: 50%;
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
+  animation: pulseStatus 2s infinite ease-in-out;
+}
+
+@keyframes pulseStatus {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.75; }
+}
+
+/* ==========================================================================
+   MODO AVALIAÇÃO ACADÊMICA (Oculta tags por padrão para estética limpa)
+   ========================================================================== */
+body:not(.eval-mode-active) .pill-req,
+body:not(.eval-mode-active) .eval-note,
+body:not(.eval-mode-active) .eval-tag {
+  display: none !important;
+}
+
+.btn-eval-toggle {
+  background-color: #f8fafc;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.35rem 0.7rem;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: var(--transition);
+}
+
+.btn-eval-toggle:hover {
+  background-color: #f1f5f9;
+  color: var(--text-main);
+  border-color: #cbd5e1;
+}
+
+body.eval-mode-active .btn-eval-toggle {
+  background-color: #eff6ff;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+  box-shadow: 0 0 0 1px #93c5fd;
+}
+
+.eval-note {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+  font-family: var(--font-mono);
 }
 
 /* ==========================================================================
@@ -267,89 +282,115 @@ nav.main-nav {
   border-color: #bfdbfe;
 }
 
+/* Barra Superior da Recepção */
+.staff-top-bar {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0.65rem 1.75rem;
+  background-color: #fffbeb;
+  border-bottom: 1px solid #fde68a;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.staff-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.staff-badge {
+  background-color: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fcd34d;
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.staff-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #92400e;
+}
+
 /* ==========================================================================
-   CONTEÚDO PRINCIPAL & ESTATÍSTICAS
+   CONTEÚDO PRINCIPAL & VISÕES (SPA)
    ========================================================================== */
 main.main-content {
   max-width: 1320px;
   margin: 1.5rem auto;
-  padding: 0 1.75rem 3.5rem;
-}
-
-/* Regras de Visibilidade por Perfil */
-body.mode-cliente .funcionario-only {
-  display: none !important;
-}
-
-body.mode-funcionario .cliente-only {
-  display: none !important;
-}
-
-/* Banner de Perfil Ativo (Área do Cliente vs Área do Funcionário) */
-.role-banner {
-  border-radius: var(--radius);
-  padding: 0.9rem 1.25rem;
-  margin-bottom: 1.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
-  border: 1px solid transparent;
-  transition: var(--transition);
-}
-
-.role-banner-cliente {
-  background-color: #eff6ff;
-  border-color: #bfdbfe;
-  color: #1e40af;
-}
-
-.role-banner-funcionario {
-  background-color: #fffbeb;
-  border-color: #fde68a;
-  color: #92400e;
-}
-
-.role-banner-content {
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
+  padding: 0 1.75rem 2rem;
   flex: 1;
+  width: 100%;
 }
 
-.role-banner-badge {
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 0.25rem 0.6rem;
-  border-radius: 6px;
-  white-space: nowrap;
+.app-view {
+  display: none;
 }
 
-.role-banner-cliente .role-banner-badge {
-  background-color: #dbeafe;
-  color: #1d4ed8;
-  border: 1px solid #93c5fd;
+.app-view.active {
+  display: block;
 }
 
-.role-banner-funcionario .role-banner-badge {
-  background-color: #fef3c7;
-  color: #b45309;
-  border: 1px solid #fcd34d;
+.guest-subtab {
+  display: none;
 }
 
-.role-banner-text {
-  font-size: 0.88rem;
-  color: inherit;
+.guest-subtab.active {
+  display: block;
 }
 
-.role-banner-action .btn {
-  white-space: nowrap;
+.staff-subtab {
+  display: none;
 }
 
-/* Cards de Resumo no Topo */
+.staff-subtab.active {
+  display: block;
+}
+
+/* Hero de Boas-vindas para o Cliente */
+.guest-hero-banner {
+  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+  border-radius: var(--radius-lg);
+  padding: 2.2rem 2.5rem;
+  margin-bottom: 1.75rem;
+  color: #ffffff;
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.guest-hero-banner::after {
+  content: '';
+  position: absolute;
+  right: -30px;
+  bottom: -40px;
+  width: 200px;
+  height: 200px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.guest-hero-content h1 {
+  font-size: 1.65rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin-bottom: 0.4rem;
+}
+
+.guest-hero-content p {
+  font-size: 0.95rem;
+  opacity: 0.92;
+  max-width: 620px;
+}
+
+/* Cards de Resumo no Topo (Recepção) */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -441,14 +482,23 @@ body.mode-funcionario .cliente-only {
 }
 
 /* ==========================================================================
-   BARRA DE FILTROS & CONTROLES
+   BARRA DE FILTROS & CONTROLES DE BUSCA
    ========================================================================== */
+.search-card {
+  padding: 1.25rem 1.4rem;
+  margin-bottom: 1.5rem;
+}
+
+.search-card-header {
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+}
+
 .filter-bar {
   background: #f8fafc;
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 1rem 1.25rem;
-  margin-bottom: 1.25rem;
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
@@ -460,7 +510,7 @@ body.mode-funcionario .cliente-only {
   flex-direction: column;
   gap: 0.35rem;
   flex: 1;
-  min-width: 160px;
+  min-width: 150px;
 }
 
 .filter-group label,
@@ -486,6 +536,12 @@ body.mode-funcionario .cliente-only {
   outline: none;
   border-color: var(--border-focus);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.filter-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
 }
 
 /* Botões */
@@ -557,7 +613,230 @@ body.mode-funcionario .cliente-only {
 }
 
 /* ==========================================================================
-   TABELAS DE DADOS
+   VITRINE DE ACOMODAÇÕES (CARDS / GRID DO HÓSPEDE)
+   ========================================================================== */
+.showcase-header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 1.75rem 0 1rem;
+}
+
+.showcase-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.3px;
+}
+
+.showcase-count {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  background: #f1f5f9;
+  border: 1px solid var(--border);
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-weight: 600;
+}
+
+.rooms-showcase-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+}
+
+.room-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  transition: var(--transition);
+}
+
+.room-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+  border-color: #cbd5e1;
+}
+
+.room-card-banner {
+  height: 105px;
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  padding: 1rem 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  position: relative;
+}
+
+.room-card-banner.standard { background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); }
+.room-card-banner.luxo { background: linear-gradient(135deg, #065f46 0%, #10b981 100%); }
+.room-card-banner.suite { background: linear-gradient(135deg, #6b21a8 0%, #a855f7 100%); }
+.room-card-banner.presidencial { background: linear-gradient(135deg, #78350f 0%, #d97706 100%); }
+
+.room-card-type-tag {
+  background: rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(4px);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.25rem 0.65rem;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.room-card-number-badge {
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.room-card-body {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 0.85rem;
+}
+
+.room-card-title-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.room-card-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: -0.3px;
+  line-height: 1.3;
+}
+
+.room-card-amenities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.amenity-pill {
+  font-size: 0.74rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  padding: 0.22rem 0.55rem;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.room-card-footer {
+  padding: 1rem 1.25rem;
+  background-color: #f8fafc;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.room-card-price {
+  display: flex;
+  flex-direction: column;
+}
+
+.room-card-price .amount {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--primary);
+  line-height: 1.1;
+}
+
+.room-card-price .period {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+}
+
+/* ==========================================================================
+   PORTÃO DE ACESSO RESTRITO DA RECEPÇÃO (RBAC GATE)
+   ========================================================================== */
+.reception-gate-container {
+  padding: 3.5rem 1rem;
+}
+
+.reception-gate-card {
+  max-width: 500px;
+  margin: 0 auto;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 2.5rem 2rem;
+  text-align: center;
+  box-shadow: var(--shadow-md);
+}
+
+.gate-icon-wrapper {
+  width: 68px;
+  height: 68px;
+  background: #fffbeb;
+  color: #d97706;
+  border: 1px solid #fde68a;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.25rem;
+}
+
+.reception-gate-card h2 {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 0.6rem;
+}
+
+.gate-desc {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-bottom: 1.75rem;
+}
+
+.gate-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.gate-demo-hint {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px dashed var(--border);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.gate-demo-hint strong {
+  color: var(--primary);
+}
+
+/* ==========================================================================
+   TABELAS DE DADOS (VISÃO ADMINISTRATIVA DA RECEPÇÃO)
    ========================================================================== */
 .table-responsive {
   border: 1px solid var(--border);
@@ -726,6 +1005,36 @@ table.data-table tbody tr:hover td {
   padding: 1.5rem;
 }
 
+/* Acessos rápidos no modal de login */
+.demo-auth-box {
+  margin-top: 1.25rem;
+  padding: 0.85rem;
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.demo-auth-title {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+}
+
+.demo-auth-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.demo-auth-buttons .btn {
+  flex: 1;
+  font-size: 0.78rem;
+  padding: 0.45rem 0.6rem;
+}
+
 /* ==========================================================================
    COMPROVANTE OFICIAL DE CHECK-OUT (Requisito 3.4)
    ========================================================================== */
@@ -817,6 +1126,102 @@ table.data-table tbody tr:hover td {
   color: var(--text-muted);
 }
 
+/* ==========================================================================
+   RODAPÉ CORPORATIVO
+   ========================================================================== */
+.app-footer {
+  background-color: #ffffff;
+  border-top: 1px solid var(--border);
+  padding: 1.5rem 1.75rem;
+  margin-top: 4rem;
+}
+
+.app-footer-container {
+  max-width: 1320px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.footer-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.footer-name {
+  color: var(--primary);
+  font-weight: 800;
+}
+
+.footer-dot {
+  color: var(--text-light);
+}
+
+.footer-meta {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}
+
+.footer-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.footer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  transition: var(--transition);
+}
+
+.footer-link:hover {
+  color: var(--primary);
+  background-color: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.footer-btn-eval {
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-family: inherit;
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: var(--transition);
+}
+
+.footer-btn-eval:hover {
+  background-color: #f1f5f9;
+  color: var(--text-main);
+}
+
 /* Toast */
 .app-toast {
   position: fixed;
@@ -874,5 +1279,9 @@ table.data-table tbody tr:hover td {
   }
   nav.main-nav {
     padding: 0 1rem;
+  }
+  .app-footer-container {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

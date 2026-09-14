@@ -4,149 +4,199 @@ import { initPWA } from './pwa.js';
 // Estado global da aplicação
 const state = {
   currentUser: null,
-  userMode: 'cliente', // 'cliente' ou 'funcionario'
-  activeTab: 'tab-quartos',
+  route: '/', // '/' ou '/recepcao' ou '/minhas-reservas'
+  guestSubtab: 'tab-vitrine',
+  staffSubtab: 'tab-staff-checkin',
+  evalMode: false,
   rooms: [],
   reservas: [],
   hospedagensAtivas: [],
   historico: []
 };
 
-// Inicialização
+// Inicialização da aplicação
 document.addEventListener('DOMContentLoaded', () => {
   initPWA();
+  initEvalMode();
   initAuth();
-  initModeSelector();
+  initRouting();
   initTabs();
   initFilters();
   initModals();
   initForms();
   initPrintButton();
+  initDemoButtons();
+
+  // Datas padrão para os filtros e formulários
+  initDefaultDates();
 
   // Carregamento inicial de dados
   carregarQuartos();
   carregarReservas();
   carregarHospedagensAtivas();
   carregarHistorico();
-
-  // Preenche data de entrada com a data/hora atual no formulário de check-in
-  const now = new Date();
-  const localIsoString = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-  const dataEntradaInput = document.getElementById('checkin-data-entrada');
-  if (dataEntradaInput) dataEntradaInput.value = localIsoString;
-
-  // Preenche previsão de saída com +2 dias
-  const in2Days = new Date(now);
-  in2Days.setDate(in2Days.getDate() + 2);
-  const dataPrevisaoInput = document.getElementById('checkin-previsao-saida');
-  if (dataPrevisaoInput) dataPrevisaoInput.value = in2Days.toISOString().split('T')[0];
-
-  // Preenche datas na modal de reserva
-  const reservaEntrada = document.getElementById('reserva-data-entrada');
-  const reservaSaida = document.getElementById('reserva-data-saida');
-  if (reservaEntrada) reservaEntrada.value = now.toISOString().split('T')[0];
-  if (reservaSaida) reservaSaida.value = in2Days.toISOString().split('T')[0];
 });
 
 /* ====================================================================
-   SELEÇÃO DE MODO (Área do Cliente vs Área do Funcionário)
+   MODO AVALIAÇÃO ACADÊMICA (Oculta tags por padrão para estética limpa)
    ==================================================================== */
-function initModeSelector() {
-  const btnCliente = document.getElementById('btn-mode-cliente');
-  const btnFuncionario = document.getElementById('btn-mode-funcionario');
-  const btnHelper = document.getElementById('btn-switch-role-helper');
+function initEvalMode() {
+  const saved = localStorage.getItem('vigilant_eval_mode') === 'true';
+  setEvalMode(saved);
 
-  if (btnCliente) {
-    btnCliente.addEventListener('click', () => setUserMode('cliente'));
+  const btnHeader = document.getElementById('btn-toggle-eval');
+  const btnFooter = document.getElementById('btn-footer-eval');
+
+  if (btnHeader) {
+    btnHeader.addEventListener('click', () => setEvalMode(!state.evalMode));
   }
-  if (btnFuncionario) {
-    btnFuncionario.addEventListener('click', () => setUserMode('funcionario'));
+  if (btnFooter) {
+    btnFooter.addEventListener('click', () => setEvalMode(!state.evalMode));
   }
-  if (btnHelper) {
-    btnHelper.addEventListener('click', () => {
-      const nextMode = state.userMode === 'cliente' ? 'funcionario' : 'cliente';
-      setUserMode(nextMode);
+}
+
+function setEvalMode(enabled) {
+  state.evalMode = enabled;
+  localStorage.setItem('vigilant_eval_mode', enabled ? 'true' : 'false');
+  document.body.classList.toggle('eval-mode-active', enabled);
+
+  const textHeader = document.getElementById('eval-toggle-text');
+  const statusFooter = document.getElementById('footer-eval-status');
+
+  if (textHeader) {
+    textHeader.textContent = enabled ? 'Modo Avaliação: ON' : 'Modo Avaliação';
+  }
+  if (statusFooter) {
+    statusFooter.textContent = enabled ? 'Ativado (Tags Visíveis)' : 'Desativado';
+    statusFooter.style.color = enabled ? 'var(--primary)' : 'inherit';
+  }
+}
+
+/* ====================================================================
+   ROTEAMENTO E CONTROLE DE ACESSO (RBAC)
+   ==================================================================== */
+function initRouting() {
+  // Trata navegação no clique de links internos
+  const brandLink = document.getElementById('brand-home-link');
+  if (brandLink) {
+    brandLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      navigateTo('/');
     });
   }
 
-  // Acessos rápidos no modal de identificação
-  const btnDemoCliente = document.getElementById('btn-fill-demo-cliente');
-  const btnDemoFuncionario = document.getElementById('btn-fill-demo-funcionario');
-
-  if (btnDemoCliente) {
-    btnDemoCliente.addEventListener('click', () => {
-      document.getElementById('login-email').value = 'cliente@hotelvigilant.com';
-      document.getElementById('login-senha').value = '123456';
+  const footerLink = document.getElementById('link-footer-reception');
+  if (footerLink) {
+    footerLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (state.route === '/recepcao') {
+        navigateTo('/');
+      } else {
+        navigateTo('/recepcao');
+      }
     });
   }
 
-  if (btnDemoFuncionario) {
-    btnDemoFuncionario.addEventListener('click', () => {
+  const btnBackGuest = document.getElementById('btn-back-to-guest');
+  if (btnBackGuest) {
+    btnBackGuest.addEventListener('click', () => navigateTo('/'));
+  }
+
+  const btnGateBack = document.getElementById('btn-gate-back-guest');
+  if (btnGateBack) {
+    btnGateBack.addEventListener('click', () => navigateTo('/'));
+  }
+
+  const btnGateLogin = document.getElementById('btn-gate-login');
+  if (btnGateLogin) {
+    btnGateLogin.addEventListener('click', () => {
+      openModal('modal-auth');
+      // Preenche credenciais de funcionário para conveniência
       document.getElementById('login-email').value = 'recepcao@hotelvigilant.com';
       document.getElementById('login-senha').value = 'admin123';
     });
   }
 
-  // Aplica o modo salvo ou padrão inicial
-  const savedMode = sessionStorage.getItem('vigilant_mode') || 'cliente';
-  setUserMode(savedMode);
+  // Monitora alterações de URL (botões voltar/avançar do navegador)
+  window.addEventListener('popstate', () => {
+    handleRoute(window.location.pathname);
+  });
+
+  // Rota inicial na carga da página
+  const initialPath = window.location.pathname || '/';
+  handleRoute(initialPath, false);
 }
 
-function setUserMode(mode) {
-  state.userMode = mode;
-  sessionStorage.setItem('vigilant_mode', mode);
-
-  const btnCliente = document.getElementById('btn-mode-cliente');
-  const btnFuncionario = document.getElementById('btn-mode-funcionario');
-  const banner = document.getElementById('role-banner');
-  const bannerBadge = document.getElementById('role-banner-badge');
-  const bannerText = document.getElementById('role-banner-text');
-  const bannerHelper = document.getElementById('btn-switch-role-helper');
-  const labelQuartos = document.getElementById('label-nav-quartos');
-  const labelReservas = document.getElementById('label-nav-reservas');
-
-  document.body.classList.toggle('mode-cliente', mode === 'cliente');
-  document.body.classList.toggle('mode-funcionario', mode === 'funcionario');
-
-  if (btnCliente) btnCliente.classList.toggle('active', mode === 'cliente');
-  if (btnFuncionario) {
-    btnFuncionario.classList.toggle('active', mode === 'funcionario');
-    btnFuncionario.classList.toggle('mode-staff', mode === 'funcionario');
+function navigateTo(path, pushState = true) {
+  if (pushState) {
+    window.history.pushState({}, '', path);
   }
+  handleRoute(path);
+}
 
-  if (mode === 'cliente') {
-    if (banner) {
-      banner.className = 'role-banner role-banner-cliente';
-    }
-    if (bannerBadge) bannerBadge.textContent = 'Área do Cliente';
-    if (bannerText) bannerText.textContent = 'Bem-vindo(a) ao Hotel Vigilant! Consulte quartos disponíveis, faça reservas e acompanhe seus agendamentos.';
-    if (bannerHelper) {
-      bannerHelper.textContent = 'Acessar Área do Funcionário (Recepção) →';
-      bannerHelper.className = 'btn btn-outline-primary btn-sm';
-    }
-    if (labelQuartos) labelQuartos.textContent = 'Quartos Disponíveis';
-    if (labelReservas) labelReservas.textContent = 'Minhas Reservas';
+function handleRoute(path) {
+  const isReception = path.includes('/recepcao') || path.includes('/admin');
+  const isMinhasReservas = path.includes('/minhas-reservas');
 
-    // Se estiver em uma aba restrita ao funcionário, volta para quartos
-    if (state.activeTab === 'tab-recepcao' || state.activeTab === 'tab-relatorios') {
-      switchTab('tab-quartos');
+  state.route = isReception ? '/recepcao' : (isMinhasReservas ? '/minhas-reservas' : '/');
+
+  const viewGuest = document.getElementById('view-guest');
+  const viewReception = document.getElementById('view-reception');
+  const navGuest = document.getElementById('nav-container-guest');
+  const navStaff = document.getElementById('nav-container-staff');
+  const labelFooterReception = document.getElementById('label-footer-reception');
+
+  if (isReception) {
+    // Visão da Recepção
+    if (viewGuest) viewGuest.classList.remove('active');
+    if (viewReception) viewReception.classList.add('active');
+    if (navGuest) navGuest.style.display = 'none';
+
+    if (labelFooterReception) {
+      labelFooterReception.textContent = '← Voltar para a Área do Hóspede (Vitrine)';
     }
+
+    const isStaff = state.currentUser && (
+      state.currentUser.tipoPerfil === 'FUNCIONARIO' || 
+      (state.currentUser.codigoCliente && state.currentUser.codigoCliente.startsWith('FUNC'))
+    );
+
+    const gate = document.getElementById('reception-gate');
+    const dashboard = document.getElementById('reception-dashboard');
+
+    if (isStaff) {
+      if (gate) gate.style.display = 'none';
+      if (dashboard) dashboard.style.display = 'block';
+      if (navStaff) navStaff.style.display = 'block';
+
+      // Atualiza os dados operacionais
+      carregarQuartos();
+      carregarHospedagensAtivas();
+      carregarReservas();
+      carregarHistorico();
+    } else {
+      if (gate) gate.style.display = 'block';
+      if (dashboard) dashboard.style.display = 'none';
+      if (navStaff) navStaff.style.display = 'none';
+    }
+
   } else {
-    if (banner) {
-      banner.className = 'role-banner role-banner-funcionario';
-    }
-    if (bannerBadge) bannerBadge.textContent = 'Área do Funcionário (Recepção)';
-    if (bannerText) bannerText.textContent = 'Painel da Recepção & Governança • Realize Check-in (Req 3.3), Check-out (Req 3.4), controle ocupações e emita relatórios.';
-    if (bannerHelper) {
-      bannerHelper.textContent = '← Voltar para Área do Cliente (Hóspede)';
-      bannerHelper.className = 'btn btn-outline-primary btn-sm';
-    }
-    if (labelQuartos) labelQuartos.textContent = 'Gestão de Quartos & Ocupação';
-    if (labelReservas) labelReservas.textContent = 'Todas as Reservas';
-  }
+    // Visão do Hóspede
+    if (viewReception) viewReception.classList.remove('active');
+    if (viewGuest) viewGuest.classList.add('active');
+    if (navGuest) navGuest.style.display = 'block';
+    if (navStaff) navStaff.style.display = 'none';
 
-  renderQuartosTable();
-  renderReservasTable();
+    if (labelFooterReception) {
+      labelFooterReception.textContent = 'Acesso Corporativo / Área do Funcionário';
+    }
+
+    if (isMinhasReservas) {
+      switchGuestSubtab('tab-minhas-reservas');
+    } else {
+      switchGuestSubtab('tab-vitrine');
+    }
+  }
 }
 
 /* ====================================================================
@@ -195,15 +245,21 @@ function initAuth() {
       renderUserSession();
       closeModal('modal-auth');
 
-      // Se for funcionário, ativa automaticamente a área do funcionário
-      const isFunc = (res.cliente.tipoPerfil === 'FUNCIONARIO') || (res.cliente.codigoCliente && res.cliente.codigoCliente.startsWith('FUNC'));
+      // Redirecionamento inteligente baseado no perfil
+      const isFunc = (res.cliente.tipoPerfil === 'FUNCIONARIO') || 
+                     (res.cliente.codigoCliente && res.cliente.codigoCliente.startsWith('FUNC'));
+
       if (isFunc) {
         res.cliente.tipoPerfil = 'FUNCIONARIO';
-        setUserMode('funcionario');
+        navigateTo('/recepcao');
         showToast(`Bem-vindo(a) à Recepção, ${res.cliente.nome}!`, 'success');
       } else {
         res.cliente.tipoPerfil = 'CLIENTE';
-        setUserMode('cliente');
+        if (state.route === '/recepcao') {
+          navigateTo('/minhas-reservas');
+        } else {
+          handleRoute(state.route);
+        }
         showToast(`Bem-vindo(a), ${res.cliente.nome}!`, 'success');
       }
 
@@ -230,8 +286,8 @@ function initAuth() {
       sessionStorage.setItem('vigilant_user', JSON.stringify(res.cliente));
       renderUserSession();
       closeModal('modal-auth');
-      setUserMode('cliente');
-      showToast(`Cadastro realizado com sucesso! Seu código é: ${res.cliente.codigoCliente}`, 'success');
+      navigateTo('/');
+      showToast(`Cadastro realizado! Seu código de cliente é: ${res.cliente.codigoCliente}`, 'success');
       preencherCodigoClienteCampos();
     } catch (err) {
       alert(`Erro no cadastro: ${err.message}`);
@@ -239,10 +295,30 @@ function initAuth() {
   });
 }
 
+function initDemoButtons() {
+  const btnDemoCliente = document.getElementById('btn-fill-demo-cliente');
+  const btnDemoFuncionario = document.getElementById('btn-fill-demo-funcionario');
+
+  if (btnDemoCliente) {
+    btnDemoCliente.addEventListener('click', () => {
+      document.getElementById('login-email').value = 'cliente@hotelvigilant.com';
+      document.getElementById('login-senha').value = '123456';
+    });
+  }
+
+  if (btnDemoFuncionario) {
+    btnDemoFuncionario.addEventListener('click', () => {
+      document.getElementById('login-email').value = 'recepcao@hotelvigilant.com';
+      document.getElementById('login-senha').value = 'admin123';
+    });
+  }
+}
+
 function renderUserSession() {
   const container = document.getElementById('user-session-container');
   if (state.currentUser) {
-    const isFunc = (state.currentUser.tipoPerfil === 'FUNCIONARIO') || (state.currentUser.codigoCliente && state.currentUser.codigoCliente.startsWith('FUNC'));
+    const isFunc = (state.currentUser.tipoPerfil === 'FUNCIONARIO') || 
+                   (state.currentUser.codigoCliente && state.currentUser.codigoCliente.startsWith('FUNC'));
     container.innerHTML = `
       <div style="display: flex; align-items: center; gap: 0.75rem;">
         <div style="text-align: right; line-height: 1.2;">
@@ -261,14 +337,19 @@ function renderUserSession() {
       state.currentUser = null;
       sessionStorage.removeItem('vigilant_user');
       renderUserSession();
-      setUserMode('cliente');
-      showToast('Sessão encerrada.', 'info');
+      if (state.route === '/recepcao') {
+        handleRoute('/recepcao');
+      } else {
+        renderReservasTable();
+      }
+      showToast('Sessão finalizada com sucesso.', 'info');
     });
   } else {
     container.innerHTML = `
       <button id="btn-open-auth-modal" class="btn btn-primary btn-sm">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        Entrar / Cadastrar (Req 3.1)
+        <span>Entrar / Cadastrar</span>
+        <span class="pill-req">Req 3.1</span>
       </button>
     `;
     document.getElementById('btn-open-auth-modal').addEventListener('click', () => openModal('modal-auth'));
@@ -284,69 +365,264 @@ function preencherCodigoClienteCampos() {
 }
 
 /* ====================================================================
-   NAVEGAÇÃO DE ABAS
+   NAVEGAÇÃO DE ABAS INTERNAS (HÓSPEDE E RECEPÇÃO)
    ==================================================================== */
 function initTabs() {
-  const tabs = document.querySelectorAll('.nav-tab');
-  tabs.forEach(tab => {
+  // Abas do Hóspede
+  document.querySelectorAll('[data-guest-tab]').forEach(tab => {
     tab.addEventListener('click', () => {
-      const targetId = tab.getAttribute('data-tab');
-      switchTab(targetId);
+      const target = tab.getAttribute('data-guest-tab');
+      switchGuestSubtab(target);
+    });
+  });
+
+  // Abas da Recepção
+  document.querySelectorAll('[data-staff-tab]').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.getAttribute('data-staff-tab');
+      switchStaffSubtab(target);
     });
   });
 }
 
-function switchTab(tabId) {
-  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+function switchGuestSubtab(tabId) {
+  state.guestSubtab = tabId;
+  document.querySelectorAll('[data-guest-tab]').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.guest-subtab').forEach(c => c.classList.remove('active'));
 
-  const activeBtn = document.querySelector(`.nav-tab[data-tab="${tabId}"]`);
+  const activeBtn = document.querySelector(`[data-guest-tab="${tabId}"]`);
   const activeContent = document.getElementById(tabId);
 
   if (activeBtn) activeBtn.classList.add('active');
   if (activeContent) activeContent.classList.add('active');
-  state.activeTab = tabId;
 
-  // Atualiza dados conforme a aba
-  if (tabId === 'tab-quartos') carregarQuartos();
-  if (tabId === 'tab-reservas') carregarReservas();
-  if (tabId === 'tab-recepcao') carregarHospedagensAtivas();
-  if (tabId === 'tab-relatorios') carregarHistorico();
+  if (tabId === 'tab-vitrine') carregarQuartos();
+  if (tabId === 'tab-minhas-reservas') carregarReservas();
+}
+
+function switchStaffSubtab(tabId) {
+  state.staffSubtab = tabId;
+  document.querySelectorAll('[data-staff-tab]').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.staff-subtab').forEach(c => c.classList.remove('active'));
+
+  const activeBtn = document.querySelector(`[data-staff-tab="${tabId}"]`);
+  const activeContent = document.getElementById(tabId);
+
+  if (activeBtn) activeBtn.classList.add('active');
+  if (activeContent) activeContent.classList.add('active');
+
+  if (tabId === 'tab-staff-checkin' || tabId === 'tab-staff-quartos') carregarQuartos();
+  if (tabId === 'tab-staff-checkout') carregarHospedagensAtivas();
+  if (tabId === 'tab-staff-reservas') carregarReservas();
+  if (tabId === 'tab-staff-relatorios') carregarHistorico();
 }
 
 /* ====================================================================
-   FILTROS E BUSCA DE QUARTOS (Requisito 3.2)
+   FILTROS E BUSCA DE QUARTOS (VITRINE DO HÓSPEDE)
    ==================================================================== */
 function initFilters() {
-  document.getElementById('btn-filtrar-quartos').addEventListener('click', () => {
-    const tipo = document.getElementById('filter-tipo').value;
-    const precoMax = document.getElementById('filter-preco').value;
-    const capacidade = document.getElementById('filter-capacidade').value;
-    carregarQuartos({ tipo, precoMax, capacidade });
-  });
+  const btnFiltrar = document.getElementById('btn-filtrar-quartos');
+  if (btnFiltrar) {
+    btnFiltrar.addEventListener('click', () => {
+      const tipo = document.getElementById('filter-tipo').value;
+      const precoMax = document.getElementById('filter-preco').value;
+      const capacidade = document.getElementById('filter-capacidade').value;
+      carregarQuartos({ tipo, precoMax, capacidade });
+    });
+  }
 
-  document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
-    document.getElementById('filter-tipo').value = '';
-    document.getElementById('filter-preco').value = '';
-    document.getElementById('filter-capacidade').value = '';
-    carregarQuartos();
-  });
+  const btnLimpar = document.getElementById('btn-limpar-filtros');
+  if (btnLimpar) {
+    btnLimpar.addEventListener('click', () => {
+      document.getElementById('filter-tipo').value = '';
+      document.getElementById('filter-preco').value = '';
+      document.getElementById('filter-capacidade').value = '';
+      initDefaultDates();
+      carregarQuartos();
+    });
+  }
+}
+
+function initDefaultDates() {
+  const now = new Date();
+  const in2Days = new Date(now);
+  in2Days.setDate(in2Days.getDate() + 2);
+
+  const strToday = now.toISOString().split('T')[0];
+  const strIn2Days = in2Days.toISOString().split('T')[0];
+
+  const filterEntrada = document.getElementById('filter-data-entrada');
+  const filterSaida = document.getElementById('filter-data-saida');
+  if (filterEntrada && !filterEntrada.value) filterEntrada.value = strToday;
+  if (filterSaida && !filterSaida.value) filterSaida.value = strIn2Days;
+
+  // Preenche data de entrada no formulário de check-in
+  const localIsoString = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  const dataEntradaInput = document.getElementById('checkin-data-entrada');
+  if (dataEntradaInput && !dataEntradaInput.value) dataEntradaInput.value = localIsoString;
+
+  const dataPrevisaoInput = document.getElementById('checkin-previsao-saida');
+  if (dataPrevisaoInput && !dataPrevisaoInput.value) dataPrevisaoInput.value = strIn2Days;
+
+  // Preenche datas na modal de reserva
+  const reservaEntrada = document.getElementById('reserva-data-entrada');
+  const reservaSaida = document.getElementById('reserva-data-saida');
+  if (reservaEntrada && !reservaEntrada.value) reservaEntrada.value = strToday;
+  if (reservaSaida && !reservaSaida.value) reservaSaida.value = strIn2Days;
 }
 
 async function carregarQuartos(filtros = {}) {
-  const tbody = document.getElementById('table-quartos-body');
-  if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted);">Buscando quartos...</td></tr>';
+  const gridVitrine = document.getElementById('rooms-showcase-grid');
+  const tbodyTable = document.getElementById('table-quartos-body');
+  const countBadge = document.getElementById('showcase-count-badge');
+
+  if (gridVitrine) {
+    gridVitrine.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: var(--text-muted);">Buscando acomodações disponíveis...</div>';
+  }
+  if (tbodyTable) {
+    tbodyTable.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted);">Buscando quartos...</td></tr>';
+  }
 
   try {
     const quartos = await api.buscarQuartosDisponiveis(filtros);
     state.rooms = quartos;
+
+    renderQuartosVitrine();
     renderQuartosTable();
+
+    if (countBadge) {
+      countBadge.textContent = `${quartos.length} acomodações disponíveis`;
+    }
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="8" style="color: var(--danger); text-align: center;">Falha ao carregar quartos: ${err.message}</td></tr>`;
+    if (gridVitrine) {
+      gridVitrine.innerHTML = `<div style="grid-column: 1/-1; color: var(--danger); text-align: center;">Falha ao carregar quartos: ${err.message}</div>`;
+    }
+    if (tbodyTable) {
+      tbodyTable.innerHTML = `<tr><td colspan="8" style="color: var(--danger); text-align: center;">Falha ao carregar quartos: ${err.message}</td></tr>`;
+    }
   }
 }
 
+/* ====================================================================
+   APRESENTAÇÃO DOS QUARTOS (VITRINE DO HÓSPEDE EM CARDS)
+   ==================================================================== */
+function getComodidadesPorTipo(tipo) {
+  const t = (tipo || '').toLowerCase();
+  if (t.includes('presidencial')) {
+    return [
+      { icon: '📶', label: 'Wi-Fi Dedicado 1Gbps' },
+      { icon: '🛁', label: 'Banheira Hidromassagem' },
+      { icon: '📺', label: 'Smart TV 75" 4K' },
+      { icon: '🍸', label: 'Bar Privativo' },
+      { icon: '🛏️', label: 'Cama Super King' },
+      { icon: '🛎️', label: 'Serviço de Mordomo' }
+    ];
+  }
+  if (t.includes('suíte') || t.includes('suite')) {
+    return [
+      { icon: '📶', label: 'Wi-Fi Ultra' },
+      { icon: '❄️', label: 'Ar Split Climatizado' },
+      { icon: '🛁', label: 'Banheira de Imersão' },
+      { icon: '📺', label: 'Smart TV 65"' },
+      { icon: '🛋️', label: 'Sala de Estar Integrada' },
+      { icon: '☕', label: 'Cafeteira Nespresso' }
+    ];
+  }
+  if (t.includes('luxo')) {
+    return [
+      { icon: '📶', label: 'Wi-Fi 5G' },
+      { icon: '❄️', label: 'Ar-condicionado Split' },
+      { icon: '📺', label: 'Smart TV 55" 4K' },
+      { icon: '🛏️', label: 'Cama King Size' },
+      { icon: '☕', label: 'Frigobar Completo' },
+      { icon: '🔒', label: 'Cofre Digital' }
+    ];
+  }
+  // Standard
+  return [
+    { icon: '📶', label: 'Wi-Fi Grátis' },
+    { icon: '❄️', label: 'Ar-condicionado' },
+    { icon: '📺', label: 'Smart TV' },
+    { icon: '☕', label: 'Frigobar' },
+    { icon: '🚿', label: 'Ducha com Aquecimento' }
+  ];
+}
+
+function renderQuartosVitrine() {
+  const container = document.getElementById('rooms-showcase-grid');
+  if (!container || !state.rooms) return;
+
+  if (state.rooms.length === 0) {
+    container.innerHTML = `
+      <div style="grid-column: 1/-1; text-align: center; padding: 3rem 1rem; background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-muted);">
+        <p style="font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.5rem;">Nenhuma acomodação encontrada com esses critérios.</p>
+        <p style="font-size: 0.88rem;">Tente ajustar as datas ou o preço máximo nos filtros acima.</p>
+      </div>
+    `;
+    atualizarIndicadores();
+    return;
+  }
+
+  container.innerHTML = state.rooms.map(quarto => {
+    const comodidades = getComodidadesPorTipo(quarto.tipo);
+    const tipoClass = (quarto.tipo || 'standard').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+    return `
+      <div class="room-card" data-room-id="${quarto.codigoQuarto}">
+        <div class="room-card-banner ${tipoClass}">
+          <span class="room-card-type-tag">${quarto.tipo}</span>
+          <span class="room-card-number-badge">Nº ${quarto.numero}</span>
+        </div>
+
+        <div class="room-card-body">
+          <div class="room-card-title-box">
+            <h4 class="room-card-title">${quarto.nome}</h4>
+            <span class="badge badge-code" style="font-size: 0.72rem;">${quarto.codigoQuarto}</span>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem; color: var(--text-secondary); font-weight: 600;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span>Acomoda confortavelmente até <strong>${quarto.capacidadeMaxima} hóspedes</strong></span>
+          </div>
+
+          <div class="room-card-amenities">
+            ${comodidades.map(c => `
+              <span class="amenity-pill">
+                <span>${c.icon}</span>
+                <span>${c.label}</span>
+              </span>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="room-card-footer">
+          <div class="room-card-price">
+            <span class="period">Diária a partir de</span>
+            <span class="amount">R$ ${Number(quarto.precoUnitario).toFixed(2)}</span>
+          </div>
+
+          <button class="btn btn-primary btn-sm btn-reservar-vitrine" data-code="${quarto.codigoQuarto}" data-nome="${quarto.nome}">
+            Reservar Quarto
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  atualizarIndicadores();
+
+  // Listeners dos botões de reserva da vitrine
+  container.querySelectorAll('.btn-reservar-vitrine').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cod = btn.getAttribute('data-code');
+      abrirModalReservaComQuarto(cod);
+    });
+  });
+}
+
+/* ====================================================================
+   TABELA DETALHADA DE QUARTOS (ÁREA DA RECEPÇÃO)
+   ==================================================================== */
 function renderQuartosTable() {
   const tbody = document.getElementById('table-quartos-body');
   if (!tbody || !state.rooms) return;
@@ -356,8 +632,6 @@ function renderQuartosTable() {
     atualizarIndicadores();
     return;
   }
-
-  const isFuncionario = state.userMode === 'funcionario';
 
   tbody.innerHTML = state.rooms.map(quarto => `
     <tr>
@@ -370,14 +644,12 @@ function renderQuartosTable() {
       <td><span class="badge badge-${quarto.status.toLowerCase()}">${quarto.status}</span></td>
       <td style="text-align: right;">
         <div style="display: inline-flex; gap: 0.35rem;">
-          <button class="btn btn-primary btn-sm btn-reservar-card" data-code="${quarto.codigoQuarto}">
+          <button class="btn btn-primary btn-sm btn-checkin-table" data-code="${quarto.codigoQuarto}" title="Iniciar Check-in Imediato para este quarto">
+            Check-in Imediato
+          </button>
+          <button class="btn btn-secondary btn-sm btn-reservar-table" data-code="${quarto.codigoQuarto}">
             Reservar
           </button>
-          ${isFuncionario ? `
-            <button class="btn btn-secondary btn-sm btn-checkin-card" data-code="${quarto.codigoQuarto}" title="Iniciar Check-in Imediato para este quarto">
-              Check-in
-            </button>
-          ` : ''}
         </div>
       </td>
     </tr>
@@ -385,24 +657,21 @@ function renderQuartosTable() {
 
   atualizarIndicadores();
 
-  // Listeners dos botões da tabela
-  tbody.querySelectorAll('.btn-reservar-card').forEach(btn => {
+  tbody.querySelectorAll('.btn-checkin-table').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cod = btn.getAttribute('data-code');
+      switchStaffSubtab('tab-staff-checkin');
+      document.getElementById('checkin-codigo-item').value = cod;
+      preencherCodigoClienteCampos();
+    });
+  });
+
+  tbody.querySelectorAll('.btn-reservar-table').forEach(btn => {
     btn.addEventListener('click', () => {
       const cod = btn.getAttribute('data-code');
       abrirModalReservaComQuarto(cod);
     });
   });
-
-  if (isFuncionario) {
-    tbody.querySelectorAll('.btn-checkin-card').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const cod = btn.getAttribute('data-code');
-        switchTab('tab-recepcao');
-        document.getElementById('checkin-codigo-item').value = cod;
-        preencherCodigoClienteCampos();
-      });
-    });
-  }
 }
 
 /* ====================================================================
@@ -410,90 +679,118 @@ function renderQuartosTable() {
    ==================================================================== */
 function abrirModalReservaComQuarto(codigoQuarto) {
   document.getElementById('reserva-codigo-quarto').value = codigoQuarto;
+
+  // Se o cliente definiu datas nos filtros da vitrine, aproveita-as na reserva
+  const filterEntrada = document.getElementById('filter-data-entrada');
+  const filterSaida = document.getElementById('filter-data-saida');
+  if (filterEntrada && filterEntrada.value) {
+    document.getElementById('reserva-data-entrada').value = filterEntrada.value;
+  }
+  if (filterSaida && filterSaida.value) {
+    document.getElementById('reserva-data-saida').value = filterSaida.value;
+  }
+
   preencherCodigoClienteCampos();
   openModal('modal-reserva');
 }
 
 async function carregarReservas() {
-  const tbody = document.getElementById('table-reservas-body');
-  if (!tbody) return;
+  const tbodyGuest = document.getElementById('table-reservas-body');
+  const tbodyStaff = document.getElementById('table-reservas-staff-body');
+
   try {
     const reservas = await api.listarReservas();
     state.reservas = reservas;
     renderReservasTable();
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="9" style="color: var(--danger); text-align: center;">Falha ao carregar reservas: ${err.message}</td></tr>`;
+    const errMsg = `<tr><td colspan="9" style="color: var(--danger); text-align: center;">Falha ao carregar reservas: ${err.message}</td></tr>`;
+    if (tbodyGuest) tbodyGuest.innerHTML = errMsg;
+    if (tbodyStaff) tbodyStaff.innerHTML = errMsg;
   }
 }
 
 function renderReservasTable() {
-  const tbody = document.getElementById('table-reservas-body');
-  if (!tbody || !state.reservas) return;
+  const tbodyGuest = document.getElementById('table-reservas-body');
+  const tbodyStaff = document.getElementById('table-reservas-staff-body');
 
-  const isFuncionario = state.userMode === 'funcionario';
-  
-  // Em modo cliente, se o cliente estiver logado, destaca suas reservas
-  let reservasParaExibir = state.reservas;
-  if (!isFuncionario && state.currentUser && state.currentUser.codigoCliente) {
-    const minhas = state.reservas.filter(r => r.codigo_cliente === state.currentUser.codigoCliente);
-    if (minhas.length > 0) {
-      reservasParaExibir = minhas;
+  if (!state.reservas) return;
+
+  // 1. Tabela do Hóspede (Minhas Reservas)
+  if (tbodyGuest) {
+    let reservasGuest = state.reservas;
+    if (state.currentUser && state.currentUser.codigoCliente) {
+      const minhas = state.reservas.filter(r => r.codigo_cliente === state.currentUser.codigoCliente);
+      reservasGuest = minhas;
+    }
+
+    if (reservasGuest.length === 0) {
+      const msg = state.currentUser
+        ? 'Você ainda não possui reservas registradas. Escolha uma acomodação na vitrine e faça sua reserva!'
+        : 'Faça login para acompanhar suas reservas cadastradas ou busque por código acima.';
+      tbodyGuest.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">${msg}</td></tr>`;
+    } else {
+      tbodyGuest.innerHTML = reservasGuest.map(r => `
+        <tr>
+          <td><span class="badge badge-code">${r.codigo_reserva}</span></td>
+          <td><span class="badge badge-code">${r.codigo_cliente}</span></td>
+          <td><strong>${r.cliente_nome}</strong></td>
+          <td>${r.quarto_nome} (Nº ${r.quarto_numero})</td>
+          <td>${r.data_prevista_entrada}</td>
+          <td>${r.data_prevista_saida}</td>
+          <td>${r.num_hospedes}</td>
+          <td><span class="badge badge-${r.status === 'CONFIRMADA' ? 'confirmada' : 'disponivel'}">${r.status}</span></td>
+          <td style="text-align: right;">
+            <span class="badge badge-confirmada" style="font-size: 0.72rem;">Agendada</span>
+          </td>
+        </tr>
+      `).join('');
     }
   }
 
-  if (reservasParaExibir.length === 0) {
-    const msg = !isFuncionario && state.currentUser 
-      ? 'Você ainda não possui reservas ativas registradas. Escolha um quarto e faça sua reserva!' 
-      : 'Nenhuma reserva encontrada.';
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--text-muted);">${msg}</td></tr>`;
-    atualizarIndicadores();
-    return;
-  }
+  // 2. Tabela da Recepção (Todas as Reservas Operacionais)
+  if (tbodyStaff) {
+    if (state.reservas.length === 0) {
+      tbodyStaff.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-muted);">Nenhuma reserva encontrada no sistema.</td></tr>';
+    } else {
+      tbodyStaff.innerHTML = state.reservas.map(r => `
+        <tr>
+          <td><span class="badge badge-code">${r.codigo_reserva}</span></td>
+          <td><span class="badge badge-code">${r.codigo_cliente}</span></td>
+          <td><strong>${r.cliente_nome}</strong></td>
+          <td>${r.quarto_nome} (Nº ${r.quarto_numero})</td>
+          <td>${r.data_prevista_entrada}</td>
+          <td>${r.data_prevista_saida}</td>
+          <td>${r.num_hospedes}</td>
+          <td><span class="badge badge-${r.status === 'CONFIRMADA' ? 'confirmada' : 'disponivel'}">${r.status}</span></td>
+          <td style="text-align: right;">
+            ${r.status === 'CONFIRMADA' ? `
+              <button class="btn btn-outline-primary btn-sm btn-staff-checkin-reserva" 
+                      data-reserva="${r.codigo_reserva}" 
+                      data-cliente="${r.codigo_cliente}" 
+                      data-quarto="${r.codigo_quarto}"
+                      data-saida="${r.data_prevista_saida}"
+                      data-hospedes="${r.num_hospedes}">
+                Check-in no Balcão
+              </button>
+            ` : '<span style="color: var(--text-muted); font-size: 0.8rem;">Efetivada</span>'}
+          </td>
+        </tr>
+      `).join('');
 
-  tbody.innerHTML = reservasParaExibir.map(r => `
-    <tr>
-      <td><span class="badge badge-code">${r.codigo_reserva}</span></td>
-      <td><span class="badge badge-code">${r.codigo_cliente}</span></td>
-      <td><strong>${r.cliente_nome}</strong></td>
-      <td>${r.quarto_nome} (Nº ${r.quarto_numero})</td>
-      <td>${r.data_prevista_entrada}</td>
-      <td>${r.data_prevista_saida}</td>
-      <td>${r.num_hospedes}</td>
-      <td><span class="badge badge-${r.status === 'CONFIRMADA' ? 'confirmada' : 'disponivel'}">${r.status}</span></td>
-      <td style="text-align: right;">
-        ${r.status === 'CONFIRMADA' ? (
-          isFuncionario ? `
-            <button class="btn btn-outline-primary btn-sm btn-checkin-reserva" 
-                    data-reserva="${r.codigo_reserva}" 
-                    data-cliente="${r.codigo_cliente}" 
-                    data-quarto="${r.codigo_quarto}"
-                    data-saida="${r.data_prevista_saida}"
-                    data-hospedes="${r.num_hospedes}"
-                    title="Realizar Check-in desta reserva na recepção">
-              Check-in
-            </button>
-          ` : `
-            <span class="badge badge-confirmada" style="font-size: 0.72rem;">Check-in no balcão</span>
-          `
-        ) : '<span style="color: var(--text-muted); font-size: 0.8rem;">Concluída</span>'}
-      </td>
-    </tr>
-  `).join('');
+      tbodyStaff.querySelectorAll('.btn-staff-checkin-reserva').forEach(btn => {
+        btn.addEventListener('click', () => {
+          switchStaffSubtab('tab-staff-checkin');
+          document.getElementById('checkin-codigo-cliente').value = btn.getAttribute('data-cliente');
+          document.getElementById('checkin-codigo-item').value = btn.getAttribute('data-quarto');
+          document.getElementById('checkin-codigo-reserva').value = btn.getAttribute('data-reserva');
+          document.getElementById('checkin-previsao-saida').value = btn.getAttribute('data-saida');
+          document.getElementById('checkin-num-hospedes').value = btn.getAttribute('data-hospedes');
+        });
+      });
+    }
+  }
 
   atualizarIndicadores();
-
-  if (isFuncionario) {
-    tbody.querySelectorAll('.btn-checkin-reserva').forEach(btn => {
-      btn.addEventListener('click', () => {
-        switchTab('tab-recepcao');
-        document.getElementById('checkin-codigo-cliente').value = btn.getAttribute('data-cliente');
-        document.getElementById('checkin-codigo-item').value = btn.getAttribute('data-quarto');
-        document.getElementById('checkin-codigo-reserva').value = btn.getAttribute('data-reserva');
-        document.getElementById('checkin-previsao-saida').value = btn.getAttribute('data-saida');
-        document.getElementById('checkin-num-hospedes').value = btn.getAttribute('data-hospedes');
-      });
-    });
-  }
 }
 
 /* ====================================================================
@@ -501,12 +798,15 @@ function renderReservasTable() {
    ==================================================================== */
 async function carregarHospedagensAtivas() {
   const tbody = document.getElementById('table-ativas-body');
+  if (!tbody) return;
+
   try {
     const ativas = await api.listarHospedagensAtivas();
     state.hospedagensAtivas = ativas;
 
     if (ativas.length === 0) {
       tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Nenhuma hospedagem em andamento no momento.</td></tr>';
+      atualizarIndicadores();
       return;
     }
 
@@ -526,7 +826,7 @@ async function carregarHospedagensAtivas() {
 
     atualizarIndicadores();
 
-    document.querySelectorAll('.btn-fazer-checkout').forEach(btn => {
+    tbody.querySelectorAll('.btn-fazer-checkout').forEach(btn => {
       btn.addEventListener('click', async () => {
         const id = btn.getAttribute('data-id');
         const codigo = btn.getAttribute('data-codigo');
@@ -596,6 +896,8 @@ function exibirRelatorioModal(relatorio) {
 
 async function carregarHistorico() {
   const tbody = document.getElementById('table-historico-body');
+  if (!tbody) return;
+
   try {
     const historico = await api.listarHistoricoHospedagens();
     state.historico = historico;
@@ -623,7 +925,7 @@ async function carregarHistorico() {
       </tr>
     `).join('');
 
-    document.querySelectorAll('.btn-ver-relatorio').forEach(btn => {
+    tbody.querySelectorAll('.btn-ver-relatorio').forEach(btn => {
       btn.addEventListener('click', async () => {
         const id = btn.getAttribute('data-id');
         try {
@@ -646,53 +948,58 @@ async function carregarHistorico() {
 function initForms() {
   // Formulário de Check-in (Requisito 3.3)
   const formCheckin = document.getElementById('form-checkin');
-  formCheckin.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const dados = {
-      codigoCliente: document.getElementById('checkin-codigo-cliente').value.trim(),
-      codigoItem: document.getElementById('checkin-codigo-item').value.trim(),
-      dataEntrada: document.getElementById('checkin-data-entrada').value,
-      dataPrevisaoSaida: document.getElementById('checkin-previsao-saida').value,
-      numHospedes: document.getElementById('checkin-num-hospedes').value,
-      codigoReserva: document.getElementById('checkin-codigo-reserva').value.trim() || null
-    };
+  if (formCheckin) {
+    formCheckin.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const dados = {
+        codigoCliente: document.getElementById('checkin-codigo-cliente').value.trim(),
+        codigoItem: document.getElementById('checkin-codigo-item').value.trim(),
+        dataEntrada: document.getElementById('checkin-data-entrada').value,
+        dataPrevisaoSaida: document.getElementById('checkin-previsao-saida').value,
+        numHospedes: document.getElementById('checkin-num-hospedes').value,
+        codigoReserva: document.getElementById('checkin-codigo-reserva').value.trim() || null
+      };
 
-    try {
-      const res = await api.realizarCheckIn(dados);
-      showToast(res.mensagem, 'success');
-      formCheckin.reset();
-      preencherCodigoClienteCampos();
-      carregarHospedagensAtivas();
-      carregarQuartos();
-      carregarReservas();
-    } catch (err) {
-      alert(`Falha no check-in: ${err.message}`);
-    }
-  });
+      try {
+        const res = await api.realizarCheckIn(dados);
+        showToast(res.mensagem, 'success');
+        formCheckin.reset();
+        initDefaultDates();
+        preencherCodigoClienteCampos();
+        carregarHospedagensAtivas();
+        carregarQuartos();
+        carregarReservas();
+      } catch (err) {
+        alert(`Falha no check-in: ${err.message}`);
+      }
+    });
+  }
 
   // Formulário de Reserva (Requisito 3.2 e 3.3)
   const formReserva = document.getElementById('form-reserva');
-  formReserva.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const dados = {
-      codigoCliente: document.getElementById('reserva-codigo-cliente').value.trim(),
-      codigoQuarto: document.getElementById('reserva-codigo-quarto').value.trim(),
-      dataPrevistaEntrada: document.getElementById('reserva-data-entrada').value,
-      dataPrevistaSaida: document.getElementById('reserva-data-saida').value,
-      numHospedes: document.getElementById('reserva-num-hospedes').value
-    };
+  if (formReserva) {
+    formReserva.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const dados = {
+        codigoCliente: document.getElementById('reserva-codigo-cliente').value.trim(),
+        codigoQuarto: document.getElementById('reserva-codigo-quarto').value.trim(),
+        dataPrevistaEntrada: document.getElementById('reserva-data-entrada').value,
+        dataPrevistaSaida: document.getElementById('reserva-data-saida').value,
+        numHospedes: document.getElementById('reserva-num-hospedes').value
+      };
 
-    try {
-      const res = await api.criarReserva(dados);
-      showToast(`Reserva confirmada! Código: ${res.codigoReserva}`, 'success');
-      formReserva.reset();
-      closeModal('modal-reserva');
-      carregarReservas();
-      switchTab('tab-reservas');
-    } catch (err) {
-      alert(`Erro na reserva: ${err.message}`);
-    }
-  });
+      try {
+        const res = await api.criarReserva(dados);
+        showToast(`Reserva confirmada! Código: ${res.codigoReserva}`, 'success');
+        formReserva.reset();
+        closeModal('modal-reserva');
+        carregarReservas();
+        navigateTo('/minhas-reservas');
+      } catch (err) {
+        alert(`Erro na reserva: ${err.message}`);
+      }
+    });
+  }
 
   // Botão Nova Reserva
   const btnAbrirReserva = document.getElementById('btn-abrir-modal-reserva');
@@ -711,7 +1018,7 @@ function initForms() {
       if (!cod) return alert('Digite o código da reserva.');
       try {
         const res = await api.consultarReserva(cod);
-        alert(`Reserva Encontrada!\nCódigo: ${res.reserva.codigoReserva}\nCliente: ${res.cliente ? res.cliente.nome : 'N/A'}\nQuarto: ${res.quarto ? res.quarto.nome : 'N/A'}\nStatus: ${res.reserva.status}`);
+        alert(`Reserva Localizada!\nCódigo: ${res.reserva.codigoReserva}\nCliente: ${res.cliente ? res.cliente.nome : 'N/A'}\nQuarto: ${res.quarto ? res.quarto.nome : 'N/A'}\nStatus: ${res.reserva.status}`);
       } catch (err) {
         alert('Reserva não encontrada: ' + err.message);
       }
