@@ -196,10 +196,13 @@ function initAuth() {
       closeModal('modal-auth');
 
       // Se for funcionário, ativa automaticamente a área do funcionário
-      if (res.cliente.tipoPerfil === 'FUNCIONARIO') {
+      const isFunc = (res.cliente.tipoPerfil === 'FUNCIONARIO') || (res.cliente.codigoCliente && res.cliente.codigoCliente.startsWith('FUNC'));
+      if (isFunc) {
+        res.cliente.tipoPerfil = 'FUNCIONARIO';
         setUserMode('funcionario');
         showToast(`Bem-vindo(a) à Recepção, ${res.cliente.nome}!`, 'success');
       } else {
+        res.cliente.tipoPerfil = 'CLIENTE';
         setUserMode('cliente');
         showToast(`Bem-vindo(a), ${res.cliente.nome}!`, 'success');
       }
@@ -239,7 +242,7 @@ function initAuth() {
 function renderUserSession() {
   const container = document.getElementById('user-session-container');
   if (state.currentUser) {
-    const isFunc = state.currentUser.tipoPerfil === 'FUNCIONARIO';
+    const isFunc = (state.currentUser.tipoPerfil === 'FUNCIONARIO') || (state.currentUser.codigoCliente && state.currentUser.codigoCliente.startsWith('FUNC'));
     container.innerHTML = `
       <div style="display: flex; align-items: center; gap: 0.75rem;">
         <div style="text-align: right; line-height: 1.2;">
