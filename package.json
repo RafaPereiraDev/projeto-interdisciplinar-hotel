@@ -1,0 +1,25 @@
+{
+  "name": "vigilant-hotel-web-pwa",
+  "version": "1.0.0",
+  "description": "Sistema de Gestão Hoteleira Vigilant Hotel - Web & PWA com SQLite e POO",
+  "main": "backend/src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node backend/src/server.js",
+    "dev": "node --watch backend/src/server.js",
+    "stop": "powershell -Command \"Get-Process -Name node -ErrorAction SilentlyContinue | Stop-Process -Force\"",
+    "test": "node backend/test/test-flow.js"
+  },
+  "keywords": [
+    "pwa",
+    "hotel",
+    "poo",
+    "sqlite"
+  ],
+  "author": "Equipe Vigilant Hotel",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  }
+}
