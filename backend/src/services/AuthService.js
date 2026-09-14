@@ -9,7 +9,28 @@ export class AuthService {
     }
 
     /**
-     * Cadastro de novo usuário/cliente (Requisito 3.1).
+     * Cadastro de novo usuário/cliente no sistema (Requisito 3.1).
+     * Cria uma nova entidade Cliente herdada de Pessoa, gerando código único `CLI-XXXX`.
+     *
+     * @param {Object} params - Dados de cadastro do cliente.
+     * @param {string} params.nome - Nome completo do cliente/hóspede.
+     * @param {string} params.email - Endereço eletrônico único do cliente.
+     * @param {string} params.senha - Senha para autenticação no sistema.
+     * @param {string} [params.telefone=''] - Número de telefone para contato.
+     * @param {string} [params.cpf=''] - CPF do cliente para identificação.
+     * @param {'CLIENTE'|'FUNCIONARIO'} [params.tipoPerfil='CLIENTE'] - Perfil de acesso ao sistema.
+     * @returns {{ sucesso: boolean, mensagem: string, cliente: Object }} Confirmação e dados públicos do cliente criado.
+     * @throws {Error} Lança exceção se dados obrigatórios estiverem ausentes ou e-mail já existir.
+     *
+     * @example
+     * const resultado = authService.cadastrar({
+     *   nome: 'Marina Souza',
+     *   email: 'marina@email.com',
+     *   senha: 'senhaSegura123',
+     *   telefone: '(47) 99999-8888',
+     *   cpf: '000.000.000-00'
+     * });
+     * console.log(resultado.cliente.codigoCliente); // 'CLI-1002'
      */
     cadastrar({ nome, email, senha, telefone, cpf, tipoPerfil = 'CLIENTE' }) {
         if (!nome || !email || !senha) {
@@ -43,7 +64,17 @@ export class AuthService {
     }
 
     /**
-     * Autenticação de cliente (Requisito 3.2).
+     * Autenticação de credenciais de usuário (Requisito 3.1 e 3.2).
+     * Localiza o registro por e-mail e valida a senha encapsulada.
+     *
+     * @param {string} email - E-mail cadastrado no sistema.
+     * @param {string} senha - Senha em texto para comparação segura.
+     * @returns {{ sucesso: boolean, mensagem: string, cliente: Object }} Objeto de sessão contendo dados públicos.
+     * @throws {Error} Lança exceção se os parâmetros forem vazios ou credenciais inválidas.
+     *
+     * @example
+     * const sessao = authService.login('cliente@hotelvigilant.com', '123456');
+     * console.log(sessao.cliente.nome); // 'Hóspede Demonstração'
      */
     login(email, senha) {
         if (!email || !senha) {

@@ -7,6 +7,7 @@
   "scripts": {
     "start": "node backend/src/server.js",
     "dev": "node --watch backend/src/server.js",
+    "seed": "node backend/src/database/seed.js",
     "stop": "powershell -Command \"Get-Process -Name node -ErrorAction SilentlyContinue | Stop-Process -Force\"",
     "test": "node backend/test/test-flow.js"
   },
