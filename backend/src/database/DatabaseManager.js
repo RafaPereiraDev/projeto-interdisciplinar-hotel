@@ -17,7 +17,16 @@ export class DatabaseManager {
      * @private
      */
     constructor() {
-        const dbPath = path.join(__dirname, 'vigilant.db');
+        const dbPath = process.env.DB_PATH 
+            ? path.resolve(process.env.DB_PATH) 
+            : path.join(__dirname, 'vigilant.db');
+
+        // Garante a existência do diretório do banco de dados
+        const dbDir = path.dirname(dbPath);
+        if (!fs.existsSync(dbDir)) {
+            fs.mkdirSync(dbDir, { recursive: true });
+        }
+
         this.db = new DatabaseSync(dbPath);
         this.db.exec('PRAGMA foreign_keys = ON;');
         this.#initializeSchema();

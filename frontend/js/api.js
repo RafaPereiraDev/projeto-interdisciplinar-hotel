@@ -1,5 +1,7 @@
 // Cliente HTTP para consumo da API REST do Vigilant Hotel
-const API_BASE = '/api';
+const API_BASE = (typeof window !== 'undefined' && window.location.port !== '3002' && window.location.hostname === 'localhost')
+    ? 'http://localhost:3002/api'
+    : '/api';
 
 export const api = {
     async request(endpoint, options = {}) {

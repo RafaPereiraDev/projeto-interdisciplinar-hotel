@@ -137,71 +137,11 @@ header.app-header {
   gap: 0.75rem;
 }
 
-/* Status do SQLite Online (Polido e Suave) */
-.system-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.35rem 0.75rem;
-  background-color: rgba(236, 253, 245, 0.9);
-  border: 1px solid #a7f3d0;
-  border-radius: 9999px;
-  font-size: 0.76rem;
-  font-weight: 700;
-  color: #065f46;
-  box-shadow: 0 1px 2px rgba(5, 150, 105, 0.05);
-  letter-spacing: 0.2px;
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  background-color: #10b981;
-  border-radius: 50%;
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
-  animation: pulseStatus 2s infinite ease-in-out;
-}
-
-@keyframes pulseStatus {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.2); opacity: 0.75; }
-}
-
-/* ==========================================================================
-   MODO AVALIAÇÃO ACADÊMICA (Oculta tags por padrão para estética limpa)
-   ========================================================================== */
-body:not(.eval-mode-active) .pill-req,
-body:not(.eval-mode-active) .eval-note,
-body:not(.eval-mode-active) .eval-tag {
+/* Requisitos acadêmicos ocultos para estética limpa e profissional */
+.pill-req,
+.eval-note,
+.eval-tag {
   display: none !important;
-}
-
-.btn-eval-toggle {
-  background-color: #f8fafc;
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-  font-size: 0.78rem;
-  font-weight: 600;
-  padding: 0.35rem 0.7rem;
-  border-radius: 6px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  transition: var(--transition);
-}
-
-.btn-eval-toggle:hover {
-  background-color: #f1f5f9;
-  color: var(--text-main);
-  border-color: #cbd5e1;
-}
-
-body.eval-mode-active .btn-eval-toggle {
-  background-color: #eff6ff;
-  border-color: #93c5fd;
-  color: #1d4ed8;
-  box-shadow: 0 0 0 1px #93c5fd;
 }
 
 .eval-note {
@@ -1261,25 +1201,7 @@ table.data-table tbody tr:hover td {
   border-color: #bfdbfe;
 }
 
-.footer-btn-eval {
-  background: #f8fafc;
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-  font-size: 0.78rem;
-  font-family: inherit;
-  padding: 0.35rem 0.65rem;
-  border-radius: 6px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  transition: var(--transition);
-}
 
-.footer-btn-eval:hover {
-  background-color: #f1f5f9;
-  color: var(--text-main);
-}
 
 /* Toast */
 .app-toast {

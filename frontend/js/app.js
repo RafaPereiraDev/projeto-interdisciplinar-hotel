@@ -7,7 +7,6 @@ const state = {
   route: '/', // '/' ou '/recepcao' ou '/minhas-reservas'
   guestSubtab: 'tab-vitrine',
   staffSubtab: 'tab-staff-checkin',
-  evalMode: false,
   rooms: [],
   reservas: [],
   hospedagensAtivas: [],
@@ -17,7 +16,6 @@ const state = {
 // Inicialização da aplicação
 document.addEventListener('DOMContentLoaded', () => {
   initPWA();
-  initEvalMode();
   initAuth();
   initRouting();
   initTabs();
@@ -37,40 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
   carregarHistorico();
 });
 
-/* ====================================================================
-   MODO AVALIAÇÃO ACADÊMICA (Oculta tags por padrão para estética limpa)
-   ==================================================================== */
-function initEvalMode() {
-  const saved = localStorage.getItem('vigilant_eval_mode') === 'true';
-  setEvalMode(saved);
 
-  const btnHeader = document.getElementById('btn-toggle-eval');
-  const btnFooter = document.getElementById('btn-footer-eval');
-
-  if (btnHeader) {
-    btnHeader.addEventListener('click', () => setEvalMode(!state.evalMode));
-  }
-  if (btnFooter) {
-    btnFooter.addEventListener('click', () => setEvalMode(!state.evalMode));
-  }
-}
-
-function setEvalMode(enabled) {
-  state.evalMode = enabled;
-  localStorage.setItem('vigilant_eval_mode', enabled ? 'true' : 'false');
-  document.body.classList.toggle('eval-mode-active', enabled);
-
-  const textHeader = document.getElementById('eval-toggle-text');
-  const statusFooter = document.getElementById('footer-eval-status');
-
-  if (textHeader) {
-    textHeader.textContent = enabled ? 'Modo Avaliação: ON' : 'Modo Avaliação';
-  }
-  if (statusFooter) {
-    statusFooter.textContent = enabled ? 'Ativado (Tags Visíveis)' : 'Desativado';
-    statusFooter.style.color = enabled ? 'var(--primary)' : 'inherit';
-  }
-}
 
 /* ====================================================================
    ROTEAMENTO E CONTROLE DE ACESSO (RBAC)
@@ -396,7 +361,6 @@ function renderUserSession() {
       <button id="btn-open-auth-modal" class="btn btn-primary btn-sm" title="Fazer login ou cadastrar nova conta">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         <span>Entrar / Cadastrar</span>
-        <span class="pill-req">Req 3.1</span>
       </button>
     `;
 

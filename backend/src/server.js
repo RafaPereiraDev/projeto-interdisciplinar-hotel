@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { HotelController } from './controllers/HotelController.js';
@@ -8,7 +9,43 @@ import { DatabaseManager } from './database/DatabaseManager.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Garante a inicialização do banco SQLite e das sementes
+// ====================================================================
+// INICIALIZAÇÃO RESILIENTE: .env E BANCO DE DADOS SQLITE
+// ====================================================================
+const rootDir = path.resolve(__dirname, '..', '..');
+const envPath = path.join(rootDir, '.env');
+const envExamplePath = path.join(rootDir, '.env.example');
+
+// Verifica presença do .env; se não existir, cria a partir de .env.example
+if (!fs.existsSync(envPath) && fs.existsSync(envExamplePath)) {
+    try {
+        fs.copyFileSync(envExamplePath, envPath);
+        console.log('📄 Arquivo .env não encontrado. Criada cópia automática a partir de .env.example.');
+    } catch (e) {
+        console.warn('⚠️ Não foi possível copiar .env.example para .env. Utilizando valores padrão seguros.');
+    }
+}
+
+// Carrega variáveis do .env caso existam
+if (fs.existsSync(envPath)) {
+    try {
+        const envContent = fs.readFileSync(envPath, 'utf-8');
+        for (const line of envContent.split(/\r?\n/)) {
+            const trimmed = line.trim();
+            if (!trimmed || trimmed.startsWith('#')) continue;
+            const [key, ...values] = trimmed.split('=');
+            const k = key.trim();
+            const v = values.join('=').trim().replace(/^['"]|['"]$/g, '');
+            if (k && !process.env[k]) {
+                process.env[k] = v;
+            }
+        }
+    } catch (e) {
+        console.warn('⚠️ Falha ao ler .env, mantendo padrões seguros.');
+    }
+}
+
+// Garante a inicialização automática do banco SQLite, criação de tabelas (DDL) e sementes
 DatabaseManager.getInstance();
 
 const app = express();
