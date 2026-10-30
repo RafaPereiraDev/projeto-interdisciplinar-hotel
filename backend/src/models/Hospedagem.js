@@ -1,5 +1,5 @@
 /**
- * Classe Hospedagem - Gerencia a estadia ativa, check-in e check-out (Requisitos 3.3 e 3.4).
+ * Classe Hospedagem - Controla a estadia do cliente no hotel (Check-in e Check-out).
  */
 export class Hospedagem {
     #id;
@@ -44,7 +44,7 @@ export class Hospedagem {
     }
 
     get id() { return this.#id; }
-    set id(value) { this.#id = value; }
+    set id(valor) { this.#id = valor; }
     get codigoHospedagem() { return this.#codigoHospedagem; }
     get reservaId() { return this.#reservaId; }
     get clienteId() { return this.#clienteId; }
@@ -58,22 +58,23 @@ export class Hospedagem {
     get status() { return this.#status; }
 
     /**
-     * Realiza o check-out, calcula o período e define o valor total a pagar.
-     * @param {string|Date} dataCheckOut 
-     * @returns {number} Valor total calculado
+     * Faz o Check-out: registra a data de saída, calcula os dias hospedados
+     * e multiplica pelo valor da diária para obter o valor total.
      */
     realizarCheckOut(dataCheckOut = new Date().toISOString()) {
         this.#dataSaida = dataCheckOut;
         this.#status = 'FINALIZADA';
 
+        // Converte as datas para calcular a diferença de tempo
         const entrada = new Date(this.#dataEntrada);
         const saida = new Date(dataCheckOut);
+        const diferencaMs = Math.abs(saida.getTime() - entrada.getTime());
 
-        const diffTime = Math.abs(saida.getTime() - entrada.getTime());
-        // Mínimo de 1 diária se for no mesmo dia
-        const diffDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
-        
-        this.#valorTotal = Number((diffDays * this.#valorUnitario).toFixed(2));
+        // Converte milissegundos em dias (mínimo de 1 diária)
+        const diasHospedados = Math.max(1, Math.ceil(diferencaMs / (1000 * 60 * 60 * 24)));
+
+        // Calcula o valor total da estadia
+        this.#valorTotal = Number((diasHospedados * this.#valorUnitario).toFixed(2));
         return this.#valorTotal;
     }
 

@@ -1,5 +1,5 @@
 /**
- * Classe Reserva - Representa a reserva efetuada pelo cliente (Requisitos 3.2 e 3.3).
+ * Classe Reserva - Representa o agendamento prévio de um quarto por um cliente.
  */
 export class Reserva {
     #id;
@@ -35,7 +35,7 @@ export class Reserva {
     }
 
     get id() { return this.#id; }
-    set id(value) { this.#id = value; }
+    set id(valor) { this.#id = valor; }
     get codigoReserva() { return this.#codigoReserva; }
     get clienteId() { return this.#clienteId; }
     get quartoId() { return this.#quartoId; }
@@ -49,12 +49,13 @@ export class Reserva {
         this.#status = novoStatus;
     }
 
-    cancelar() {
-        this.#status = 'CANCELADA';
-    }
-
+    // Marca que o hóspede já chegou e fez o check-in desta reserva
     marcarCheckIn() {
         this.#status = 'CHECKIN_REALIZADO';
+    }
+
+    cancelar() {
+        this.#status = 'CANCELADA';
     }
 
     toJSON() {

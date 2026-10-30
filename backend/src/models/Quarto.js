@@ -1,5 +1,6 @@
 /**
- * Classe Quarto - Representa uma acomodação do Vigilant Hotel (Requisito 3.2).
+ * Classe Quarto - Representa uma acomodação do hotel.
+ * Contém o número, tipo, preço da diária e métodos para ocupar ou liberar o quarto.
  */
 export class Quarto {
     #id;
@@ -38,7 +39,7 @@ export class Quarto {
     }
 
     get id() { return this.#id; }
-    set id(value) { this.#id = value; }
+    set id(valor) { this.#id = valor; }
     get codigoQuarto() { return this.#codigoQuarto; }
     get numero() { return this.#numero; }
     get nome() { return this.#nome; }
@@ -50,36 +51,25 @@ export class Quarto {
     get imagemUrl() { return this.#imagemUrl; }
 
     set status(novoStatus) {
-        const permitidos = ['DISPONIVEL', 'OCUPADO', 'RESERVADO', 'MANUTENCAO'];
-        if (!permitidos.includes(novoStatus)) {
-            throw new Error(`Status inválido: ${novoStatus}`);
-        }
         this.#status = novoStatus;
     }
 
+    // Verifica se o quarto pode receber hóspedes
     isDisponivel() {
         return this.#status === 'DISPONIVEL';
     }
 
+    // Altera o status para OCUPADO no Check-in
     ocupar() {
         if (!this.isDisponivel()) {
-            throw new Error(`O quarto ${this.#numero} não está disponível para ocupação.`);
+            throw new Error(`O quarto ${this.#numero} não está disponível no momento.`);
         }
         this.#status = 'OCUPADO';
     }
 
+    // Altera o status de volta para DISPONIVEL no Check-out
     liberar() {
         this.#status = 'DISPONIVEL';
-    }
-
-    /**
-     * Calcula o valor de diárias para este quarto.
-     * @param {number} dias 
-     * @returns {number}
-     */
-    calcularTotalDiarias(dias) {
-        const qtdDias = Math.max(1, Math.ceil(dias));
-        return Number((qtdDias * this.#precoUnitario).toFixed(2));
     }
 
     toJSON() {

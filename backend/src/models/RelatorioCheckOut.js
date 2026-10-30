@@ -1,14 +1,9 @@
 /**
- * Classe RelatorioCheckOut (Requisito 3.4 do Projeto).
- * Emite o relatório formatado de encerramento da hospedagem com os 6 itens obrigatórios:
- * a. Nome e código do cliente
- * b. Número do quarto, tipo e valor unitário
- * c. Data de entrada
- * d. Data de saída
- * e. Número de hóspedes
- * f. Valor total
+ * Classe RelatorioCheckOut - Monta o comprovante final do Check-out (Requisito 3.4).
+ * Reúne os dados de Cliente, Quarto e Hospedagem para exibir na tela ou no terminal.
  */
 export class RelatorioCheckOut {
+    #codigoHospedagem;
     #codigoCliente;
     #nomeCliente;
     #numeroQuarto;
@@ -18,7 +13,6 @@ export class RelatorioCheckOut {
     #dataSaida;
     #numHospedes;
     #valorTotal;
-    #codigoHospedagem;
 
     constructor({
         codigoHospedagem,
@@ -44,47 +38,20 @@ export class RelatorioCheckOut {
         this.#valorTotal = Number(valorTotal);
     }
 
-    get codigoHospedagem() { return this.#codigoHospedagem; }
-    get codigoCliente() { return this.#codigoCliente; }
-    get nomeCliente() { return this.#nomeCliente; }
-    get numeroQuarto() { return this.#numeroQuarto; }
-    get tipoQuarto() { return this.#tipoQuarto; }
-    get valorUnitario() { return this.#valorUnitario; }
-    get dataEntrada() { return this.#dataEntrada; }
-    get dataSaida() { return this.#dataSaida; }
-    get numHospedes() { return this.#numHospedes; }
-    get valorTotal() { return this.#valorTotal; }
-
-    /**
-     * Formata o relatório em texto para impressão ou console.
-     * @returns {string}
-     */
+    // Gera o resumo em texto simples para exibir no console/terminal
     gerarTextoComprovante() {
         return `
 =====================================================
-         VIGILANT GRAND HOTEL & RESIDENCES           
-             RELATÓRIO OFICIAL DE CHECK-OUT          
+             RELATÓRIO DE CHECK-OUT                  
 =====================================================
-Código de Hospedagem: ${this.#codigoHospedagem}
-
-[A] DADOS DO CLIENTE
-  - Nome: ${this.#nomeCliente}
-  - Código: ${this.#codigoCliente}
-
-[B] DADOS DA ACOMODAÇÃO
-  - Quarto Nº: ${this.#numeroQuarto}
-  - Tipo / Categoria: ${this.#tipoQuarto}
-  - Valor Unitário (Diária): R$ ${this.#valorUnitario.toFixed(2)}
-
-[C] DATA DE ENTRADA: ${new Date(this.#dataEntrada).toLocaleString('pt-BR')}
-[D] DATA DE SAÍDA:   ${new Date(this.#dataSaida).toLocaleString('pt-BR')}
-[E] NÚMERO DE HÓSPEDES: ${this.#numHospedes}
-
------------------------------------------------------
-[F] VALOR TOTAL A PAGAR: R$ ${this.#valorTotal.toFixed(2)}
-=====================================================
-Agradecemos a sua preferência no Vigilant Hotel!
-`;
+Código da Hospedagem: ${this.#codigoHospedagem}
+a) Cliente: ${this.#nomeCliente} (${this.#codigoCliente})
+b) Quarto: Nº ${this.#numeroQuarto} - Tipo: ${this.#tipoQuarto} - Diária: R$ ${this.#valorUnitario.toFixed(2)}
+c) Data de Entrada: ${new Date(this.#dataEntrada).toLocaleString('pt-BR')}
+d) Data de Saída:   ${new Date(this.#dataSaida).toLocaleString('pt-BR')}
+e) Nº de Hóspedes:  ${this.#numHospedes}
+f) VALOR TOTAL:     R$ ${this.#valorTotal.toFixed(2)}
+=====================================================`;
     }
 
     toJSON() {

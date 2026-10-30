@@ -1,5 +1,6 @@
 /**
- * Classe base abstrata/conceitual Pessoa (Demonstração do pilar de Herança em POO).
+ * Classe base Pessoa - Representa os dados comuns de um ser humano.
+ * Demonstra o conceito de HERANÇA em Programação Orientada a Objetos.
  */
 export class Pessoa {
     #nome;
@@ -7,12 +8,6 @@ export class Pessoa {
     #telefone;
     #cpf;
 
-    /**
-     * @param {string} nome 
-     * @param {string} email 
-     * @param {string} telefone 
-     * @param {string} cpf 
-     */
     constructor(nome, email, telefone = '', cpf = '') {
         this.#nome = nome;
         this.#email = email;
@@ -20,24 +15,26 @@ export class Pessoa {
         this.#cpf = cpf;
     }
 
+    // Getters e Setters para encapsulamento dos dados
     get nome() { return this.#nome; }
-    set nome(value) {
-        if (!value || value.trim().length === 0) throw new Error('Nome é obrigatório.');
-        this.#nome = value.trim();
+    set nome(valor) {
+        if (!valor || valor.trim().length === 0) throw new Error('Nome é obrigatório.');
+        this.#nome = valor.trim();
     }
 
     get email() { return this.#email; }
-    set email(value) {
-        if (!value || !value.includes('@')) throw new Error('E-mail inválido.');
-        this.#email = value.trim().toLowerCase();
+    set email(valor) {
+        if (!valor || !valor.includes('@')) throw new Error('E-mail inválido.');
+        this.#email = valor.trim().toLowerCase();
     }
 
     get telefone() { return this.#telefone; }
-    set telefone(value) { this.#telefone = value ? value.trim() : ''; }
+    set telefone(valor) { this.#telefone = valor ? valor.trim() : ''; }
 
     get cpf() { return this.#cpf; }
-    set cpf(value) { this.#cpf = value ? value.trim() : ''; }
+    set cpf(valor) { this.#cpf = valor ? valor.trim() : ''; }
 
+    // Retorna os dados em formato de objeto
     toJSON() {
         return {
             nome: this.nome,
